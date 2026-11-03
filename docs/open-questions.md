@@ -13,7 +13,7 @@ Check this file before building anything that touches these items. Resolve each 
 - **Two-reviewer screening:** a batch setting. Reviewers do not need to be blind to each other's decisions (US-19).
 - **AI first-pass timing:** covered by P-1 (up to 500 records within 60 minutes).
 - **Export formats:** screening decisions to CSV and Excel; review log to PDF and Word (scope.md, functional requirements).
-- **Import method:** PubMed export file, not the NCBI E-utilities API. The release board still shows E-utilities and needs updating.
+- **Import method:** PubMed export file, not the NCBI E-utilities API.
 - **Board items with no story:** covered by US-15 to US-20 (queries, sprint progress, keyboard shortcuts, disagreement flags, calibration). They are stories, not built yet.
 
 ## Needs your decision

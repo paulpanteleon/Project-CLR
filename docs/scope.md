@@ -72,4 +72,4 @@ These are planned but not built in Release 1:
 
 ## Changes from earlier drafts
 
-- The import method is a PubMed export file, not the NCBI E-utilities API. The release scope board still shows E-utilities and needs updating.
+- The import method is a PubMed export file, not the NCBI E-utilities API.
