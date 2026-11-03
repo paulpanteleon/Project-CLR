@@ -5,21 +5,20 @@ Check this file before building anything that touches these items. Resolve each 
 ## Resolved (2026-11-03)
 
 - **Relevance score:** shown on each queued record for ranking. It is not a confidence in the AI's decision (FR-DR-10, CLAUDE.md).
-- **Roles:** user types are medical writer, clinician reviewer, and clinical affairs lead. Permission levels are read-only, reviewer, and owner. An admin assigns both (S-2, functional requirements).
+- **Roles:** user types are medical writer, clinician reviewer, and clinical affairs lead. Permission levels are read-only, reviewer, and owner. An admin assigns both (S-2, US-15).
 - **"Unsure" vs. "maybe":** use "unsure" (scope.md).
 - **Criteria structure:** PICO-style fields (scope.md).
 - **Export formats:** screening decisions to CSV and Excel; review log to PDF and Word (scope.md, functional requirements).
-- **Import method (2026-11-03):** PubMed export file, not the NCBI E-utilities API. The release board still shows E-utilities and needs updating.
+- **Import method:** PubMed export file, not the NCBI E-utilities API. The release board still shows E-utilities and needs updating.
+- **Board items with no story:** now covered by US-15 to US-20 (queries, sprint progress, keyboard shortcuts, disagreement flags, calibration). They are stories, not built yet.
 
-## Board items with no functional requirement yet
+## Proposed in the new stories, needs your decision
 
-These are in Release 1 on the board but not in the functional docs. Each needs a story or requirement before it is built:
-
-- Raise a query on any decision and record the response
-- Sprint progress view (screened, remaining, projected finish)
-- Keyboard shortcuts for high-volume screening
-- Flag records where two reviewers disagree
-- Calibrate the ranking against a human-labelled reference set (also tied to the validation effort below)
+1. **Owner permission level.** US-15 and US-16 assume an owner can close queries, resolve disagreements, and (from earlier docs) close batches and share review logs. Confirm the owner's full set of rights.
+2. **Reason for an include.** FR-DR-02 requires a reason for every decision, including include. Is an include reason chosen from the criteria list, or typed as free text?
+3. **Two-reviewer screening.** US-19 needs two reviewers to screen the same record. Is this a batch setting? Are reviewers blind to each other's decision until both have decided?
+4. **Projection rules.** Proposed: projection uses recent pace, and is withheld below 20 human decisions. Confirm both numbers and how "recent" is defined.
+5. **Calibration set.** Proposed: at least 50 labelled records. Confirm the size and who creates the labels.
 
 ## Deferred
 

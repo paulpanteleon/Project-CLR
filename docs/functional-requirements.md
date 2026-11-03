@@ -45,6 +45,41 @@ The review topic is "AI used to support clinical literature review." A record is
 | US-12 | CAL approves a criteria version drafted by an MW | Approval stored as an audit event. Drafter cannot approve their own draft. |
 | US-13 | CAL shares a read-only review log | Named users sign in. Expiring app-issued links. No public link without sign-in. Every view and export logged. |
 | US-14 | Any user sees only the batches and actions their role allows | Refused access is recorded. Database enforces row-level security. |
+| US-15 | Admin assigns user types and permission levels, so that each user has only the access they need | Only an admin can assign or change them. Every change is recorded in the audit history. Each user has one user type and one permission level. |
+| US-16 | Reviewer raises a query on a decision and records the response, so that questions are answered on the record | A query is stored as its own event and does not change the decision. The query stays open until an owner closes it. |
+| US-17 | Medical writer sees sprint progress (screened, remaining, projected finish), so that they can see if the deadline is at risk | Counts match the batch queue. The projection uses recent pace and is withheld below a minimum number of decisions. |
+| US-18 | Medical writer screens with keyboard shortcuts, so that high-volume screening is fast | Each outcome has a shortcut. No shortcut saves a decision without a logged reason. A help list shows every shortcut. |
+| US-19 | Reviewer flags a record where two reviewers disagree, so that conflicts are resolved on the record | Both decisions are kept. An owner resolves the flag with a new event that links to both decisions. |
+| US-20 | Clinical affairs lead checks the ranking against a labelled reference set, so that the relevance score can be calibrated | Agreement with the labels is reported. Score changes are stored as versions. Decisions keep the version they were made under. |
+
+## Scenarios for US-15 to US-20 (added 2026-11-03)
+
+These are summaries of the Gherkin scenarios. Turn them into automated tests when the feature is built.
+
+**Admin assigns user types and permission levels (US-15)**
+- A non-admin cannot assign a permission level. The attempt is refused and recorded.
+- An admin assigns a user type and a permission level. The change is stored in the audit history with the admin and timestamp.
+- A read-only user cannot record a decision. The system refuses it.
+
+**Queries on decisions (US-16)**
+- A query is stored as an event linked to the decision. The decision keeps its outcome.
+- A response is stored as an event on the query. The query stays open until an owner closes it.
+
+**Sprint progress (US-17)**
+- For a batch of 500 records with 320 human decisions, progress shows 320 screened and 180 remaining.
+- With fewer decisions than the minimum (proposed: 20), progress shows "not enough data for a projected finish."
+
+**Keyboard shortcuts (US-18)**
+- Every outcome has a shortcut. Shortcuts that need a reason open the reason picker, and nothing is saved until a reason is chosen.
+- The help list shows every shortcut.
+
+**Disagreement between reviewers (US-19)**
+- When reviewer A records "include" and reviewer B records "exclude" for the same record, the record is flagged. Both decisions are kept.
+- An owner resolves the flag with a new event, with a reason. The flag clears.
+
+**Calibrate the ranking (US-20)**
+- The clinical affairs lead runs calibration on a labelled set (proposed: at least 50 records). The system reports the share of labels the ranking agrees with.
+- Saving a calibrated score creates a new version. Decisions made under the earlier version still reference it.
 
 ## Use cases
 
@@ -101,3 +136,4 @@ Outcomes for a human decision: include, exclude, unsure, send to clinician revie
 - **FR-DR-10.** No AI confidence score on a decision. Show criteria matched and the reason. The relevance score is shown for ranking only and is not a confidence in the decision.
 - **FR-DR-11.** Every AI request uses the US-pinned route. A proposal whose recorded endpoint is outside the US is refused and flagged.
 - **FR-DR-12.** Confidential batches are screened only through a route with zero data retention enforced, and the proposal records that ZDR was enforced.
+- **FR-DR-13.** The relevance score is stored with its version. A change creates a new version. Decisions keep the version they were made under. (Added 2026-11-03 with US-20.)
