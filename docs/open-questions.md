@@ -6,22 +6,24 @@ Check this file before building anything that touches these items. Resolve each 
 
 - **Relevance score:** shown on each queued record for ranking. It is not a confidence in the AI's decision (FR-DR-10, CLAUDE.md).
 - **Roles:** user types are medical writer, clinician reviewer, and clinical affairs lead. Permission levels are read-only, reviewer, and owner. An admin assigns both (S-2, US-15).
+- **Owner permission level:** confirmed as proposed in US-15 and US-16.
 - **"Unsure" vs. "maybe":** use "unsure" (scope.md).
 - **Criteria structure:** PICO-style fields (scope.md).
+- **Reason for an include:** chosen from the criteria list, with optional free text. Every decision reason now comes from the list (FR-DR-02).
+- **Two-reviewer screening:** a batch setting. Reviewers do not need to be blind to each other's decisions (US-19).
+- **AI first-pass timing:** covered by P-1 (up to 500 records within 60 minutes).
 - **Export formats:** screening decisions to CSV and Excel; review log to PDF and Word (scope.md, functional requirements).
 - **Import method:** PubMed export file, not the NCBI E-utilities API. The release board still shows E-utilities and needs updating.
-- **Board items with no story:** now covered by US-15 to US-20 (queries, sprint progress, keyboard shortcuts, disagreement flags, calibration). They are stories, not built yet.
+- **Board items with no story:** covered by US-15 to US-20 (queries, sprint progress, keyboard shortcuts, disagreement flags, calibration). They are stories, not built yet.
 
-## Proposed in the new stories, needs your decision
+## Needs your decision
 
-1. **Owner permission level.** US-15 and US-16 assume an owner can close queries, resolve disagreements, and (from earlier docs) close batches and share review logs. Confirm the owner's full set of rights.
-2. **Reason for an include.** FR-DR-02 requires a reason for every decision, including include. Is an include reason chosen from the criteria list, or typed as free text?
-3. **Two-reviewer screening.** US-19 needs two reviewers to screen the same record. Is this a batch setting? Are reviewers blind to each other's decision until both have decided?
-4. **Projection rules.** Proposed: projection uses recent pace, and is withheld below 20 human decisions. Confirm both numbers and how "recent" is defined.
-5. **Calibration set.** Proposed: at least 50 labelled records. Confirm the size and who creates the labels.
+None right now.
 
 ## Deferred
 
+- **Sprint progress projection (US-17).** The projected finish of human screening against the sprint deadline. Only the counts are built for Release 1. When this is picked up, decide the pace window and the minimum number of decisions before a projection is shown.
+- **Calibration set (US-20).** The size of the labelled set and who creates the labels. Proposed: at least 50 labelled records.
 - **Supabase free plan vs. the NFR doc.** The NFR doc assumes Supabase Pro for daily backups (A-3) and the 99% availability working target (A-1). The owner plans to stay on the free plan as long as possible. Check the current free-plan limits, including backups and project pausing. Decide how recovery works without Pro, then update A-1, A-3, and the operations plan. *Owner will check this later.*
 - **Vercel Hobby.** Allowed for personal, non-commercial use only. Confirm this remains true, and record the trigger for moving to Pro.
 

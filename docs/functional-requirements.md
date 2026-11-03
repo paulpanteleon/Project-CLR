@@ -19,7 +19,8 @@ The review topic is "AI used to support clinical literature review." A record is
 - No AI confidence score on a decision. The AI shows criteria matched and a reason (2026-10-23). A relevance score is shown for ranking only (2026-11-03).
 - User types are medical writer, clinician reviewer, and clinical affairs lead. Permission levels are read-only, reviewer, and owner. An admin assigns both (2026-11-03).
 - Exports: screening decisions to CSV and Excel; review log to PDF and Word (2026-11-03).
-- Exclusion and unsure reasons come from a fixed criteria list, with optional free text (2026-10-23).
+- Every decision reason, including include, comes from a fixed criteria list, with optional free text (2026-10-23, extended to include on 2026-11-03).
+- Two-reviewer screening is a batch setting. Reviewers do not need to be blind to each other's decisions (2026-11-03).
 - AI requests use only the US-pinned route. If unavailable, the batch pauses and may fall back only to other US-pinned endpoints (2026-10-28).
 - Source snapshots are stored in the database, not file storage, so backups cover them (2026-10-28).
 - Sharing a review log: named users sign in with a role, or receive an app-issued link that expires. No public link that works without sign-in (2026-10-28).
@@ -47,9 +48,9 @@ The review topic is "AI used to support clinical literature review." A record is
 | US-14 | Any user sees only the batches and actions their role allows | Refused access is recorded. Database enforces row-level security. |
 | US-15 | Admin assigns user types and permission levels, so that each user has only the access they need | Only an admin can assign or change them. Every change is recorded in the audit history. Each user has one user type and one permission level. |
 | US-16 | Reviewer raises a query on a decision and records the response, so that questions are answered on the record | A query is stored as its own event and does not change the decision. The query stays open until an owner closes it. |
-| US-17 | Medical writer sees sprint progress (screened, remaining, projected finish), so that they can see if the deadline is at risk | Counts match the batch queue. The projection uses recent pace and is withheld below a minimum number of decisions. |
+| US-17 | Medical writer sees sprint progress (screened and remaining counts), so that they can see how far through the batch they are | Counts match the batch queue. The projected finish is deferred. |
 | US-18 | Medical writer screens with keyboard shortcuts, so that high-volume screening is fast | Each outcome has a shortcut. No shortcut saves a decision without a logged reason. A help list shows every shortcut. |
-| US-19 | Reviewer flags a record where two reviewers disagree, so that conflicts are resolved on the record | Both decisions are kept. An owner resolves the flag with a new event that links to both decisions. |
+| US-19 | Reviewer flags a record where two reviewers disagree, so that conflicts are resolved on the record | Two-reviewer screening is a batch setting. Reviewers can see each other's decisions. Both decisions are kept. An owner resolves the flag with a new event that links to both decisions. |
 | US-20 | Clinical affairs lead checks the ranking against a labelled reference set, so that the relevance score can be calibrated | Agreement with the labels is reported. Score changes are stored as versions. Decisions keep the version they were made under. |
 
 ## Scenarios for US-15 to US-20 (added 2026-11-03)
@@ -67,7 +68,7 @@ These are summaries of the Gherkin scenarios. Turn them into automated tests whe
 
 **Sprint progress (US-17)**
 - For a batch of 500 records with 320 human decisions, progress shows 320 screened and 180 remaining.
-- With fewer decisions than the minimum (proposed: 20), progress shows "not enough data for a projected finish."
+- The projected finish is deferred (see open questions). Only the counts are built for Release 1.
 
 **Keyboard shortcuts (US-18)**
 - Every outcome has a shortcut. Shortcuts that need a reason open the reason picker, and nothing is saved until a reason is chosen.
@@ -125,7 +126,7 @@ Outcomes for a human decision: include, exclude, unsure, send to clinician revie
 
 **Requirements:**
 - **FR-DR-01.** A decision is saved only with a record reference, criteria version, reviewer, and timestamp. Otherwise the save is refused and names the missing item.
-- **FR-DR-02.** Every decision, including include, has a logged reason. Exclude and unsure require a reason from the criteria list, with optional free text.
+- **FR-DR-02.** Every decision, including include, has a logged reason chosen from the criteria list, with optional free text.
 - **FR-DR-03.** AI proposal and human decision are separate events. A human decision never overwrites an AI proposal.
 - **FR-DR-04.** Decisions are never edited or deleted. A correction is a new event that points to the one it corrects.
 - **FR-DR-05.** Every AI proposal is stored with its full reproducibility set before a reviewer sees it.

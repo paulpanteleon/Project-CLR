@@ -24,7 +24,7 @@ Prototype only, with PubMed records only.
 - Remove duplicate records across imports
 - Build a batch screening queue with include, exclude, and unsure actions
 - Add keyboard shortcuts for high-volume screening
-- Show sprint progress: screened, remaining, and projected finish against the deadline
+- Show sprint progress: screened and remaining counts (the projected finish against the deadline is deferred)
 - Export screening decisions to CSV and Excel
 
 **Apply the same criteria to every record**
