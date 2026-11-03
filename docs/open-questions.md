@@ -1,16 +1,17 @@
 # Open questions
 
-Check this file before building anything that touches these items. Each one is a conflict between source docs or a decision still to make. Resolve each one, then update the relevant doc and delete the entry here.
+Check this file before building anything that touches these items. Resolve each entry, update the relevant doc, then delete the entry here.
 
-## Conflicts between the release board and the functional docs
+## Resolved (2026-11-03)
 
-1. **Relevance score vs. no numeric confidence score.** The release board shows a relevance score on each queued record. FR-DR-10 says no numeric confidence score is shown, and the AI shows criteria and reason instead. Are the two the same thing? If not, what is the score based on, and does it need to be shown?
-2. **Reviewer roles.** The board uses read-only, reviewer, and owner. The functional docs and S-2 use medical writer, clinician reviewer, and clinical affairs lead. Which model does Release 1 use, or do both apply?
-3. **"Maybe" vs. "unsure."** The board's queue actions are include, exclude, and maybe. The decision record uses include, exclude, unsure, and send to clinician review. Which name is used in the product?
-4. **Criteria structure.** The board defines criteria with population, intervention, comparator, outcomes, design, and dates. The use cases define criteria as a written topic and a fixed list of exclusion reasons. Are both needed, or does one replace the other?
-5. **Export formats.** The board asks for CSV and Excel for screening decisions, and PDF and Word for the review log. The functional docs cover the review log but not the screening export. Confirm both sets.
+- **Relevance score:** shown on each queued record for ranking. It is not a confidence in the AI's decision (FR-DR-10, CLAUDE.md).
+- **Roles:** user types are medical writer, clinician reviewer, and clinical affairs lead. Permission levels are read-only, reviewer, and owner. An admin assigns both (S-2, functional requirements).
+- **"Unsure" vs. "maybe":** use "unsure" (scope.md).
+- **Criteria structure:** PICO-style fields (scope.md).
+- **Export formats:** screening decisions to CSV and Excel; review log to PDF and Word (scope.md, functional requirements).
+- **Import method (2026-11-03):** PubMed export file, not the NCBI E-utilities API. The release board still shows E-utilities and needs updating.
 
-## Items on the board with no functional requirement yet
+## Board items with no functional requirement yet
 
 These are in Release 1 on the board but not in the functional docs. Each needs a story or requirement before it is built:
 
@@ -18,16 +19,11 @@ These are in Release 1 on the board but not in the functional docs. Each needs a
 - Sprint progress view (screened, remaining, projected finish)
 - Keyboard shortcuts for high-volume screening
 - Flag records where two reviewers disagree
-- Calibrate the ranking against a human-labelled reference set (also tied to the validation effort in the vision doc)
-- Export to CSV and Excel
+- Calibrate the ranking against a human-labelled reference set (also tied to the validation effort below)
 
-## Import method
+## Deferred
 
-- **Resolved:** PubMed export file, not the NCBI E-utilities API (decided 2026-11-03). The release board still shows E-utilities and needs updating.
-
-## Plans and cost
-
-- **Supabase free plan vs. the NFR doc.** The NFR doc assumes Supabase Pro for daily backups (A-3) and the 99% availability working target (A-1). The owner plans to stay on the free plan as long as possible. Check the current free-plan limits, including backups and project pausing. Decide how recovery works without Pro: manual exports, or a move to Pro at a defined trigger. Update A-1, A-3, and the operations plan to match.
+- **Supabase free plan vs. the NFR doc.** The NFR doc assumes Supabase Pro for daily backups (A-3) and the 99% availability working target (A-1). The owner plans to stay on the free plan as long as possible. Check the current free-plan limits, including backups and project pausing. Decide how recovery works without Pro, then update A-1, A-3, and the operations plan. *Owner will check this later.*
 - **Vercel Hobby.** Allowed for personal, non-commercial use only. Confirm this remains true, and record the trigger for moving to Pro.
 
 ## Validation and proof points

@@ -16,7 +16,9 @@ The review topic is "AI used to support clinical literature review." A record is
 - Criteria versions: the medical writer drafts, the clinical affairs lead approves, and approval is an audit event (2026-10-23).
 - Every view and export of a decision or review log is logged in the audit history (2026-10-23).
 - "Send to clinician review" is a fourth outcome, with its own clinician queue (2026-10-23).
-- No numeric confidence score. The AI shows criteria matched and a reason (2026-10-23).
+- No AI confidence score on a decision. The AI shows criteria matched and a reason (2026-10-23). A relevance score is shown for ranking only (2026-11-03).
+- User types are medical writer, clinician reviewer, and clinical affairs lead. Permission levels are read-only, reviewer, and owner. An admin assigns both (2026-11-03).
+- Exports: screening decisions to CSV and Excel; review log to PDF and Word (2026-11-03).
 - Exclusion and unsure reasons come from a fixed criteria list, with optional free text (2026-10-23).
 - AI requests use only the US-pinned route. If unavailable, the batch pauses and may fall back only to other US-pinned endpoints (2026-10-28).
 - Source snapshots are stored in the database, not file storage, so backups cover them (2026-10-28).
@@ -96,6 +98,6 @@ Outcomes for a human decision: include, exclude, unsure, send to clinician revie
 - **FR-DR-07.** The only personal data stored in a decision record is the reviewer's name and email.
 - **FR-DR-08.** Timestamps are stored in UTC and shown in the reviewer's local time.
 - **FR-DR-09.** Records sent to clinician review are placed in a clinician queue showing full decision history.
-- **FR-DR-10.** No numeric confidence score. Show criteria matched and the reason.
+- **FR-DR-10.** No AI confidence score on a decision. Show criteria matched and the reason. The relevance score is shown for ranking only and is not a confidence in the decision.
 - **FR-DR-11.** Every AI request uses the US-pinned route. A proposal whose recorded endpoint is outside the US is refused and flagged.
 - **FR-DR-12.** Confidential batches are screened only through a route with zero data retention enforced, and the proposal records that ZDR was enforced.

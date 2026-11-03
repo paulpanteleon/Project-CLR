@@ -54,7 +54,7 @@ Draft v0.8, 2026-10-28, condensed for the repo. The source doc holds the full ra
 | ID | Requirement | Target | Status |
 |---|---|---|---|
 | S-1 | Sign-in | Supabase email and MFA. Vercel Authentication on preview and production. Company SSO deferred | Accepted concession (prototype) |
-| S-2 | Roles and permissions | Medical writer, clinician reviewer, and clinical affairs lead, enforced with Supabase row-level security | Proposed |
+| S-2 | Roles and permissions | User types (medical writer, clinician reviewer, clinical affairs lead) and permission levels (read-only, reviewer, owner). An admin assigns both. Enforced with Supabase row-level security | Proposed |
 | S-3 | Encryption | TLS 1.3 in transit and AES-256 at rest (verified for Vercel). Supabase at-rest encryption still to confirm | Proposed |
 | S-4 | Secrets | API keys and passwords in Vercel environment variables or Supabase's secret store, never in code or documents | Proposed |
 | S-5 | Data classification | Each data source labelled public or confidential before loading | Confirmed |

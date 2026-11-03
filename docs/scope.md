@@ -22,13 +22,13 @@ Prototype only, with PubMed records only.
 **Finish title and abstract screening within one review sprint**
 - Import PubMed search results from a PubMed export file (MEDLINE-style), with PMID, title, abstract, and DOI
 - Remove duplicate records across imports
-- Build a batch screening queue with include, exclude, and maybe actions *(see open questions: "maybe" vs "unsure")*
+- Build a batch screening queue with include, exclude, and unsure actions
 - Add keyboard shortcuts for high-volume screening
 - Show sprint progress: screened, remaining, and projected finish against the deadline
 - Export screening decisions to CSV and Excel
 
 **Apply the same criteria to every record**
-- Define structured screening criteria: population, intervention, comparator, outcomes, design, and dates *(see open questions: criteria structure)*
+- Define PICO-style screening criteria: population, intervention, comparator, outcomes, design, and dates
 - Version and lock criteria per review
 - Record the criteria version on every screening decision
 - Generate a first-pass decision and rationale per record against the criteria
@@ -36,7 +36,7 @@ Prototype only, with PubMed records only.
 - Test consistency by re-running the same records and comparing decisions
 
 **Rank records so likely-relevant studies appear first**
-- Define a relevance score from criteria match and study design *(see open questions: score vs no confidence score)*
+- Define a relevance score from criteria match and study design, used for ranking only
 - Sort the queue by score, with date as the tie-breaker
 - Show the score and rationale on each queued record
 - Calibrate the ranking against a human-labelled reference set
@@ -50,7 +50,7 @@ Prototype only, with PubMed records only.
 
 **Let clinical affairs leads and clinician reviewers check reasoning without rebuilding it**
 - Create a shareable read-only review log
-- Set reviewer roles: read-only, reviewer, owner *(see open questions: role model)*
+- Assign user types (medical writer, clinician reviewer, clinical affairs lead) and permission levels (read-only, reviewer, owner). An admin assigns both.
 - Export the review log to PDF and Word for submission packages
 
 **Avoid rework cycles caused by unexplained findings**

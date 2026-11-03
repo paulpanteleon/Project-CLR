@@ -26,7 +26,7 @@ Read these before making product decisions:
 - Every AI request uses the US-pinned route. Never send a request outside the United States, and never add a fallback outside it.
 - Confidential sources also need zero data retention enforced on every request. Do not run a confidential batch without it.
 - Store the full reproducibility set for every AI proposal (source snapshot, criteria version, prompt version, model ID, settings, raw output, upstream provider and endpoint, ZDR status) before a reviewer sees it.
-- Do not show a numeric confidence score. Show the criteria matched and the reason.
+- Do not show a confidence score for an AI decision. Show the criteria matched and the reason. The relevance score is shown for ranking only.
 - Describe the product as a prototype. Do not use "validated" or "compliant" until the proof points in the vision doc pass.
 - Ask before adding a paid service, changing the Supabase or Vercel plan, or adding a dependency that sends data to a new third party.
 - Use Next.js conventions. Check the Next.js docs for the installed version before writing code that depends on version-specific behavior.
