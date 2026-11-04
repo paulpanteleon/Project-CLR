@@ -1,7 +1,7 @@
 # ADR-0008: Email and password sign-in, with owners as the first admins
 
 ## Date and status
-2026-11-04. Accepted, with open items. Multi-factor sign-in (S-1) is not built yet and must be done before any real review.
+2026-11-04. Accepted, with open items. The multi-factor step this ADR left open is added in ADR-0009 (2026-11-04). Sign-out is available on the MFA screens.
 
 ## Context
 The app needs a way for users to sign in (S00, S-1). The requirements say sign-in uses email and multi-factor authentication. US-15 says an admin assigns user types and permission levels, but the docs do not say who the admin is. The first build needs a role model that can be tested now and changed later without a rewrite.
@@ -25,7 +25,7 @@ Use Option 1 now and add multi-factor before the first real review. Sign-in erro
 For the admin role, treat the "owner" permission level as the admin for now. Only an owner may change user types or permission levels, and the database enforces this (the first migration gives no client write access to `user_roles`, so changes go through a server-side admin path that is not built yet). A separate admin type can be added later without changing stored data.
 
 ## Consequences
-- Must do before any real review: add multi-factor sign-in, and tell the owner the sign-in is not yet compliant with S-1.
+- Done in ADR-0009: multi-factor sign-in with an authenticator app.
 - Must do before the admin screen: confirm with the owner that "owner" is the right admin role. If not, add a new user type and update US-15.
-- Sign-out is not built yet.
+- Sign-out is on the MFA screens only. The batches page has none yet.
 - Sessions are refreshed in `src/proxy.ts`. The proxy calls the Supabase auth server on each page request, which adds a small delay. Measure it against P-2 (pages load within 2 seconds).
