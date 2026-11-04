@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { SignOut } from "./mfa/sign-out";
 
 // Batches screen (S01). It shows the signed-in user and an empty list for now.
 // Batch data is added once the import and screening features are built.
@@ -18,6 +19,7 @@ export default function Home() {
       <Suspense fallback={null}>
         <SignedInAs />
       </Suspense>
+      <SignOut />
       <Box sx={{ mt: 3 }}>
         <Alert severity="info">No batches yet. Importing a PubMed file comes next.</Alert>
       </Box>
