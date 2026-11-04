@@ -253,7 +253,7 @@ Supabase calls these Row Level Security, or RLS. Supabase says to turn on RLS fo
 
 - [x] RLS is turned on for every table in the migrations (user_roles, batches, batch_members, decision_events, audit_events, source_snapshots, records). Planned tables are not yet created.
 - [x] Each table has a rule that limits what each person can see. Batch data, files, and records are limited to batch members. The user_roles, batch_members, and audit_events rows are limited to their own, with owners seeing all audit entries.
-- [ ] I tested this with two accounts. **Not yet.** The tests in `tests/db/` simulate two or more signed-in users on a local PostgreSQL. They have not run against a real Supabase project with two real accounts.
+- [x] I tested this with two accounts. On the development Supabase project, 2026-11-04: two test accounts, one reviewer in a batch and one reviewer outside it. The second account could not see the first batch's batch row, files, records, or decisions, could not record a decision or add itself to the batch, and saw only its own role row. Even the creator could not change or delete a decision or a record. 15 of 15 checks passed. The tests in `tests/db/` also cover these rules on a local PostgreSQL.
 
 ## Database diagram
 
