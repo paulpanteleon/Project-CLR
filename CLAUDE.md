@@ -30,3 +30,4 @@ Read these before making product decisions:
 - Describe the product as a prototype. Do not use "validated" or "compliant" until the proof points in the vision doc pass.
 - Ask before adding a paid service, changing the Supabase or Vercel plan, or adding a dependency that sends data to a new third party.
 - Use Next.js conventions. Check the Next.js docs for the installed version before writing code that depends on version-specific behavior.
+- Read every ADR in docs/adr before making changes, and write a new ADR for every big decision.
