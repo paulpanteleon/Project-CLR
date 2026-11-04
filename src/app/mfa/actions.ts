@@ -16,10 +16,7 @@ export type EnrollState = {
 // Starts authenticator set-up when the user asks for it, not when the page loads.
 // Creating the factor during page render was unsafe: a later render removed the factor
 // the QR code belonged to, so the first code check failed.
-export async function startEnrollment(
-  _previous: EnrollState,
-  _formData: FormData,
-): Promise<EnrollState> {
+export async function startEnrollment(): Promise<EnrollState> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return { error: "Sign-in is not set up yet. The Supabase settings are missing." };
