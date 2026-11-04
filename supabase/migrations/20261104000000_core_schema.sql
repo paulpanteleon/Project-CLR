@@ -30,26 +30,64 @@ create table public.batch_members (
   primary key (batch_id, user_id)
 );
 
--- Human decisions, overrides, corrections, queries, and their responses (FR-DR-04).
--- Rows are never updated or deleted. A correction points at the event it corrects.
+-- Human decisions, overrides, corrections, queries, disagreement flags, resolutions,
+-- and their responses (FR-DR-04, US-16, US-19).
+-- Rows are never updated or deleted. A correction or resolution points at the event it answers.
 create table public.decision_events (
   id uuid primary key default gen_random_uuid(),
   batch_id uuid not null references public.batches (id) on delete restrict,
   record_pmid text not null check (length(trim(record_pmid)) > 0),
-  kind text not null check (kind in ('human_decision', 'override', 'correction', 'query', 'query_response')),
+  kind text not null check (
+    kind in ('human_decision', 'override', 'correction', 'query', 'query_response', 'dispute_flag', 'resolution')
+  ),
   outcome text check (outcome in ('include', 'exclude', 'unsure', 'send_to_clinician')),
   reason_code text,
   free_text text,
   criteria_version text not null check (length(trim(criteria_version)) > 0),
-  corrects_event_id uuid references public.decision_events (id) on delete restrict,
+  corrects_event_id uuid,
   actor_id uuid not null default auth.uid() references auth.users (id),
   recorded_at timestamptz not null default now(),
-  -- A decision needs an outcome and a reason from the criteria list (FR-DR-02).
-  constraint decision_outcome_required check (kind in ('query', 'query_response') or outcome is not null),
-  constraint decision_reason_required check (kind in ('query', 'query_response') or reason_code is not null),
+  -- Lets the pointer below require the earlier event to be in the same batch.
+  constraint decision_events_batch_key unique (batch_id, id),
+  -- A correction or resolution must point at an event in the same batch (FR-DR-04).
+  constraint corrects_same_batch foreign key (batch_id, corrects_event_id)
+    references public.decision_events (batch_id, id) on delete restrict,
+  -- A decision or resolution needs an outcome and a reason from the criteria list (FR-DR-02).
+  -- Queries, replies, and disagreement flags carry no outcome.
+  constraint decision_outcome_required check (
+    kind in ('query', 'query_response', 'dispute_flag') or outcome is not null
+  ),
+  constraint decision_reason_required check (
+    kind in ('query', 'query_response', 'dispute_flag') or reason_code is not null
+  ),
   -- A correction must point at the event it corrects (FR-DR-04).
-  constraint correction_points_back check (kind <> 'correction' or corrects_event_id is not null)
+  constraint correction_points_back check (kind <> 'correction' or corrects_event_id is not null),
+  -- A resolution must point at the disagreement flag it resolves (US-19).
+  constraint resolution_points_back check (kind <> 'resolution' or corrects_event_id is not null)
 );
+
+-- A new batch's creator becomes its first member (US-01, US-14).
+-- Runs with the database owner's rights, because the creator has no membership row yet.
+-- The app must choose the batch id itself and read the batch in a separate step. Asking
+-- for the new row back in the same insert fails the read check, because this membership
+-- row is added after the insert.
+create function public.add_creator_as_batch_member()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.batch_members (batch_id, user_id)
+  values (new.id, new.created_by)
+  on conflict do nothing;
+  return new;
+end;
+$$;
+
+create trigger batches_add_creator_as_member
+  after insert on public.batches
+  for each row execute function public.add_creator_as_batch_member();
 
 -- Who did what, and whether it was allowed (T-2, US-14, US-13).
 create table public.audit_events (

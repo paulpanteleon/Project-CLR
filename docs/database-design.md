@@ -56,7 +56,7 @@ Diagram: `docs/database-diagram.md`.
 
 **Who can see it?** Only people listed as members of the batch.
 
-**Who can add, change, or delete it?** Anyone signed in can add a batch, but only as themselves. Nobody can change or delete a batch through the app yet. Closing a batch (US-08) is not built.
+**Who can add, change, or delete it?** Anyone signed in can add a batch, but only as themselves. The app must supply the batch's id itself and read the batch back in a separate step. The creator is added as the first member automatically. Nobody can change or delete a batch through the app yet. Closing a batch (US-08) is not built.
 
 ### Table name: batch_members
 
@@ -69,7 +69,7 @@ Diagram: `docs/database-diagram.md`.
 
 **Who can see it?** Each person can see only their own memberships.
 
-**Who can add, change, or delete it?** Nobody through the app yet. Adding members is not built. Membership decides who can see each batch (US-14), so this needs an admin or batch-owner path.
+**Who can add, change, or delete it?** The batch's creator is added automatically when the batch is created. Adding or removing other members is not built yet. Membership decides who can see each batch (US-14), so this needs an admin or batch-owner path.
 
 ### Table name: decision_events
 
@@ -80,18 +80,18 @@ Diagram: `docs/database-diagram.md`.
 | id | uuid | Yes | A unique code for each event. |
 | batch_id | uuid | Yes | The batch the record belongs to. |
 | record_pmid | text | Yes | The PubMed ID of the record decided. |
-| kind | text | Yes | human_decision, override, correction, query, or query_response. |
-| outcome | text | Required for decisions | include, exclude, unsure, or send_to_clinician. Not needed for queries. |
-| reason_code | text | Required for decisions | The reason, taken from the criteria reasons list. Not needed for queries. |
+| kind | text | Yes | human_decision, override, correction, query, query_response, dispute_flag (two reviewers disagree), or resolution (an owner settles a flag). |
+| outcome | text | Required for decisions and resolutions | include, exclude, unsure, or send_to_clinician. Not needed for queries, replies, or flags. |
+| reason_code | text | Required for decisions and resolutions | The reason, taken from the criteria reasons list. Not needed for queries, replies, or flags. |
 | free_text | text | No | Extra detail the reviewer adds. |
 | criteria_version | text | Yes | The criteria version in use when the decision was made. Planned to become a link to the criteria versions table. |
-| corrects_event_id | uuid | Required for corrections | The earlier event this correction replaces. |
+| corrects_event_id | uuid | Required for corrections and resolutions | The earlier event this one replaces (a correction) or settles (a resolution, which points at its dispute flag). Must be in the same batch. |
 | actor_id | uuid | Yes | The person who recorded the event. Must be the signed-in person. |
 | recorded_at | date and time | Yes | When the event was recorded (UTC). |
 
 **Who can see it?** Anyone who is a member of the batch.
 
-**Who can add, change, or delete it?** Members with reviewer or owner permission can add events, and only as themselves. Read-only members cannot add. Nobody can change or delete an event: the database refuses it, even for an owner.
+**Who can add, change, or delete it?** Members with reviewer or owner permission can add events, and only as themselves. Read-only members cannot add. Only owners can add a resolution (US-19). Nobody can change or delete an event: the database refuses it, even for an owner.
 
 ### Table name: audit_events
 
@@ -227,7 +227,8 @@ Who can see it: owners. Who can change it: nobody.
 - One person can have one role row. Each role row belongs to one person.
 - One batch can have many members. Each membership row links one person to one batch.
 - One batch can have many decision events. Each decision event belongs to one batch.
-- One decision event can be corrected by many later events, but each correction points to exactly one earlier event.
+- One decision event can be corrected by many later events, but each correction points to exactly one earlier event in the same batch.
+- One dispute flag can be settled by one resolution, which points at that flag.
 - One audit entry records one action by one person, and that person may have many entries.
 - *(Planned)* One batch has one or more source uploads. Each upload holds many records.
 - *(Planned)* One record can be in many batches, and each batch-record row has one relevance score.
@@ -251,12 +252,16 @@ Way 2: Mermaid diagram in `docs/database-diagram.md`.
 - [x] Every change to the database is saved as a SQL migration file in the repository. Current file: `supabase/migrations/20261104000000_core_schema.sql`.
 - [x] I can tell what each migration file does from its name. The name is a date and "core_schema". Later migrations will name each change (for example, `add_criteria_versions`).
 
+## Resolved in the schema fixes (2026-11-04)
+
+1. **Batch creators could not read their own batch.** A trigger now adds the creator as the first member. The app must choose the batch id itself and read the batch in a separate step, because the membership is added after the insert.
+2. **Corrections could point to events in another batch.** A database rule now requires the earlier event to be in the same batch.
+3. **Missing event kinds.** `dispute_flag` and `resolution` are now allowed. A flag needs no outcome or reason. A resolution needs an outcome, a reason, and a pointer to its flag.
+
 ## Open items to decide before creating the tables
 
-1. **Batch creators cannot read their own batch.** The insert rule allows creating a batch, but nothing adds the creator as a member. Their next read returns nothing. Fix: add a database trigger that adds the creator to batch_members on insert, or have the server do it in the same step.
-2. **Corrections can point to events in another batch.** `corrects_event_id` only checks that the event exists. Fix: a check that the two events are in the same batch.
-3. **Missing event kinds.** The user stories need `dispute_flag` and `resolution` (US-19). The migration allows only the five kinds listed above. Add them before the disagreement feature is built.
-4. **criteria_version is text, not a link.** It should point to `criteria_versions` once that table exists.
-5. **records are not linked yet.** decision_events holds record_pmid as text, which works until the records table exists.
-6. **Who manages batch members and roles?** The admin path is not designed yet (ADR-0008).
-7. **Supabase's own auth user table is the people table.** This is deliberate. No separate people table is needed. Confirm this is OK.
+1. **criteria_version is text, not a link.** It should point to `criteria_versions` once that table exists.
+2. **records are not linked yet.** decision_events holds record_pmid as text, which works until the records table exists.
+3. **A resolution links to one flag only.** US-19 says a resolution links to both decisions. The flag can carry that link, or a second pointer can be added. Decide when the disagreement feature is built.
+4. **Who manages batch members and roles?** The admin path is not designed yet (ADR-0008).
+5. **Supabase's own auth user table is the people table.** This is deliberate. No separate people table is needed. Confirm this is OK.

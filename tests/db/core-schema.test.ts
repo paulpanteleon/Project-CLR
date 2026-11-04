@@ -20,6 +20,8 @@ const WRITER = "00000000-0000-0000-0000-00000000000b";
 const READER = "00000000-0000-0000-0000-00000000000c";
 const OUTSIDER = "00000000-0000-0000-0000-00000000000d";
 const BATCH = "10000000-0000-0000-0000-000000000001";
+const OTHER_BATCH = "10000000-0000-0000-0000-000000000002";
+const OTHER_EVENT = "20000000-0000-0000-0000-000000000002";
 
 const RLS_OR_PRIVILEGE = /row-level security|permission denied/;
 const APPEND_ONLY = /append-only/;
@@ -82,11 +84,19 @@ beforeAll(async () => {
       ('${READER}', 'clinician_reviewer', 'read_only'),
       ('${OUTSIDER}', 'medical_writer', 'reviewer');
 
+    -- Creating a batch adds its creator as a member (trigger), so OWNER is not listed here.
     insert into public.batches (id, name, source_label, created_by) values
-      ('${BATCH}', 'Test batch', 'public', '${OWNER}');
+      ('${BATCH}', 'Test batch', 'public', '${OWNER}'),
+      ('${OTHER_BATCH}', 'Other batch', 'public', '${OWNER}');
 
     insert into public.batch_members (batch_id, user_id) values
-      ('${BATCH}', '${OWNER}'), ('${BATCH}', '${WRITER}'), ('${BATCH}', '${READER}');
+      ('${BATCH}', '${WRITER}'), ('${BATCH}', '${READER}');
+
+    insert into public.decision_events
+      (id, batch_id, record_pmid, kind, outcome, reason_code, criteria_version, actor_id)
+    values
+      ('${OTHER_EVENT}', '${OTHER_BATCH}', '41435444', 'human_decision', 'include',
+       'R-TOPIC-OK', 'v1', '${OWNER}');
   `);
 });
 
@@ -206,5 +216,64 @@ describe("decision rules (FR-DR-01, FR-DR-02, FR-DR-04)", () => {
         ),
       ),
     ).rejects.toThrow(/source_label/);
+  });
+});
+
+describe("schema fixes (batch creators, same-batch corrections, disagreement flags)", () => {
+  it("a batch creator is made a member and can read the batch back", async () => {
+    // The app supplies the id and reads the batch in a second step. Asking for the row back
+    // in the same insert fails, because the creator is added as a member after the insert.
+    const id = "30000000-0000-0000-0000-000000000003";
+    await asUser(WRITER, () =>
+      db.query(
+        "insert into public.batches (id, name, source_label) values ($1, 'Mine', 'public')",
+        [id],
+      ),
+    );
+
+    const readBack = await asUser(WRITER, () =>
+      db.query<{ id: string }>("select id from public.batches where id = $1", [id]),
+    );
+    expect(readBack.rows).toHaveLength(1);
+  });
+
+  it("a correction cannot point at an event in another batch", async () => {
+    await expect(
+      insertDecision(WRITER, { kind: "correction", corrects_event_id: OTHER_EVENT }),
+    ).rejects.toThrow(/foreign key|corrects_same_batch/);
+  });
+
+  it("a disagreement flag needs no outcome or reason", async () => {
+    const flag = await insertDecision(WRITER, {
+      kind: "dispute_flag",
+      outcome: null,
+      reason_code: null,
+    });
+    expect(flag.rows[0].id).toBeTruthy();
+  });
+
+  it("a resolution must point at the flag it resolves", async () => {
+    await expect(insertDecision(OWNER, { kind: "resolution" })).rejects.toThrow(
+      /resolution_points_back/,
+    );
+  });
+
+  it("an owner can resolve a flag with a reason and a link to the flag", async () => {
+    const flag = await insertDecision(WRITER, {
+      kind: "dispute_flag",
+      outcome: null,
+      reason_code: null,
+    });
+    const resolution = await insertDecision(OWNER, {
+      kind: "resolution",
+      outcome: "include",
+      reason_code: "R-TOPIC-OK",
+      corrects_event_id: flag.rows[0].id,
+    });
+    expect(resolution.rows[0].id).toBeTruthy();
+  });
+
+  it("an unknown event kind is refused", async () => {
+    await expect(insertDecision(WRITER, { kind: "made_up" })).rejects.toThrow(/kind/);
   });
 });
