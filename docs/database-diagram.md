@@ -60,6 +60,7 @@ erDiagram
 ```
 
 Rules shown in the diagram:
-- A decision event that corrects another event must point to one that exists (`corrects_event_id`).
+- A correction or resolution must point to an event in the same batch (`corrects_event_id`).
+- A new batch's creator is added to the batch's members automatically.
 - Decision events and audit events are never updated or deleted (enforced by the database).
 - Each person has at most one role row.
