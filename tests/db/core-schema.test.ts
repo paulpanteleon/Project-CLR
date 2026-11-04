@@ -1,19 +1,21 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-// These tests run the real migration against PGlite (PostgreSQL in Node), with a
+// These tests run the real migrations against PGlite (PostgreSQL in Node), with a
 // stand-in for Supabase's auth schema (see supabase-shim.sql). Each test signs in
 // as a user by setting the same claim Supabase sets, then switches to the
 // "authenticated" role, so row-level security applies exactly as it would in production.
 
 const ROOT = process.cwd();
 const shim = readFileSync(path.join(ROOT, "tests/db/supabase-shim.sql"), "utf8");
-const migration = readFileSync(
-  path.join(ROOT, "supabase/migrations/20261104000000_core_schema.sql"),
-  "utf8",
-);
+// Every migration, in filename order (the filenames start with a timestamp).
+const migrationDir = path.join(ROOT, "supabase/migrations");
+const migrations = readdirSync(migrationDir)
+  .filter((f) => f.endsWith(".sql"))
+  .sort()
+  .map((f) => readFileSync(path.join(migrationDir, f), "utf8"));
 
 const OWNER = "00000000-0000-0000-0000-00000000000a";
 const WRITER = "00000000-0000-0000-0000-00000000000b";
@@ -71,7 +73,9 @@ async function insertDecision(
 beforeAll(async () => {
   db = new PGlite();
   await db.exec(shim);
-  await db.exec(migration);
+  for (const sql of migrations) {
+    await db.exec(sql);
+  }
 
   // Seed as the database owner, which bypasses row-level security for setup.
   await db.exec(`
@@ -275,5 +279,152 @@ describe("schema fixes (batch creators, same-batch corrections, disagreement fla
 
   it("an unknown event kind is refused", async () => {
     await expect(insertDecision(WRITER, { kind: "made_up" })).rejects.toThrow(/kind/);
+  });
+});
+
+const SNAP_OK = "40000000-0000-0000-0000-000000000001";
+const SNAP_OTHER = "40000000-0000-0000-0000-000000000002";
+const CHECKSUM = "a".repeat(64);
+
+type RecordFields = Partial<{
+  batch_id: string;
+  snapshot_id: string;
+  pmid: string;
+  title: string | null;
+  abstract: string | null;
+}>;
+
+async function insertRecord(userId: string, overrides: RecordFields = {}) {
+  const r = {
+    batch_id: BATCH,
+    snapshot_id: SNAP_OK,
+    pmid: "41435444",
+    title: "A title",
+    abstract: "An abstract",
+    ...overrides,
+  };
+  return asUser(userId, () =>
+    db.query(
+      `insert into public.records (batch_id, source_snapshot_id, pmid, title, abstract)
+       values ($1, $2, $3, $4, $5)`,
+      [r.batch_id, r.snapshot_id, r.pmid, r.title, r.abstract],
+    ),
+  );
+}
+
+async function insertSnapshot(userId: string, batchId: string, id: string, checksum = CHECKSUM) {
+  return asUser(userId, () =>
+    db.query(
+      `insert into public.source_snapshots (id, batch_id, file_name, file_text, checksum)
+       values ($1, $2, 'export.txt', 'PMID- 1', $3)`,
+      [id, batchId, checksum],
+    ),
+  );
+}
+
+describe("source files and records (one copy per batch, append-only)", () => {
+  beforeAll(async () => {
+    // Seeded as the database owner, the same way as the other tables above.
+    await db.exec(`
+      insert into public.source_snapshots (id, batch_id, file_name, file_text, checksum, uploaded_by)
+      values
+        ('${SNAP_OK}', '${BATCH}', 'export.txt', 'PMID- 1', '${CHECKSUM}', '${WRITER}'),
+        ('${SNAP_OTHER}', '${OTHER_BATCH}', 'other.txt', 'PMID- 2', '${CHECKSUM}', '${OWNER}');
+    `);
+  });
+
+  it("refuses updates and deletes to a record", async () => {
+    await insertRecord(WRITER, { pmid: "60000001" });
+    await expect(
+      db.exec("update public.records set title = 'changed' where pmid = '60000001'"),
+    ).rejects.toThrow(APPEND_ONLY);
+    await expect(db.exec("delete from public.records where pmid = '60000001'")).rejects.toThrow(
+      APPEND_ONLY,
+    );
+  });
+
+  it("refuses updates and deletes to a source file", async () => {
+    await expect(
+      db.exec(`update public.source_snapshots set file_name = 'changed' where id = '${SNAP_OK}'`),
+    ).rejects.toThrow(APPEND_ONLY);
+    await expect(
+      db.exec(`delete from public.source_snapshots where id = '${SNAP_OK}'`),
+    ).rejects.toThrow(APPEND_ONLY);
+  });
+
+  it("a reviewer can upload a source file and import records", async () => {
+    const snapshotId = "40000000-0000-0000-0000-000000000003";
+    await insertSnapshot(WRITER, BATCH, snapshotId);
+    await insertRecord(WRITER, { pmid: "60000002", snapshot_id: snapshotId });
+
+    const count = await asUser(WRITER, () =>
+      db.query<{ n: number }>("select count(*)::int as n from public.records where pmid = '60000002'"),
+    );
+    expect(count.rows[0].n).toBe(1);
+  });
+
+  it("a read-only member can read records but cannot import them", async () => {
+    const seen = await asUser(READER, () =>
+      db.query<{ n: number }>("select count(*)::int as n from public.records"),
+    );
+    expect(seen.rows[0].n).toBeGreaterThan(0);
+    await expect(insertRecord(READER, { pmid: "60000003" })).rejects.toThrow(RLS_OR_PRIVILEGE);
+  });
+
+  it("a read-only member cannot upload a source file", async () => {
+    await expect(
+      insertSnapshot(READER, BATCH, "40000000-0000-0000-0000-000000000005"),
+    ).rejects.toThrow(RLS_OR_PRIVILEGE);
+  });
+
+  it("an outsider sees no records or source files", async () => {
+    const records = await asUser(OUTSIDER, () =>
+      db.query("select id from public.records"),
+    );
+    const files = await asUser(OUTSIDER, () =>
+      db.query("select id from public.source_snapshots"),
+    );
+    expect(records.rows).toHaveLength(0);
+    expect(files.rows).toHaveLength(0);
+  });
+
+  it("refuses a second copy of the same PubMed ID in one batch", async () => {
+    await insertRecord(WRITER, { pmid: "60000004" });
+    await expect(insertRecord(WRITER, { pmid: "60000004" })).rejects.toThrow(
+      /records_one_per_batch/,
+    );
+  });
+
+  it("allows the same PubMed ID in a different batch", async () => {
+    await insertRecord(WRITER, { pmid: "60000005" });
+    await expect(
+      insertRecord(OWNER, { batch_id: OTHER_BATCH, snapshot_id: SNAP_OTHER, pmid: "60000005" }),
+    ).resolves.toBeTruthy();
+  });
+
+  it("refuses a record that points at a source file in another batch", async () => {
+    await expect(
+      insertRecord(WRITER, { pmid: "60000006", snapshot_id: SNAP_OTHER }),
+    ).rejects.toThrow(/records_snapshot_same_batch|foreign key/);
+  });
+
+  it("refuses a record with no title", async () => {
+    await expect(insertRecord(WRITER, { pmid: "60000007", title: null })).rejects.toThrow(/title/);
+  });
+
+  it("refuses a PubMed ID that is not a number", async () => {
+    await expect(insertRecord(WRITER, { pmid: "PMID-1" })).rejects.toThrow(/pmid/);
+  });
+
+  it("accepts a record with no abstract, so it can be flagged and screened from the title", async () => {
+    await expect(
+      insertRecord(WRITER, { pmid: "60000008", abstract: null }),
+    ).resolves.toBeTruthy();
+  });
+
+  it("refuses a source file whose checksum is not a SHA-256 hash", async () => {
+    await expect(
+      insertSnapshot(WRITER, BATCH, "40000000-0000-0000-0000-000000000004", "not-a-hash"),
+    ).rejects.toThrow(/checksum/);
   });
 });

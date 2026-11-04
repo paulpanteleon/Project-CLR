@@ -1,6 +1,6 @@
 # Database design
 
-Status: draft, 2026-11-04. Describes the tables in `supabase/migrations/20261104000000_core_schema.sql`, plus the tables planned in `docs/architecture/plan.md` (tier 3). Planned tables are marked **Planned** and are not in a migration yet.
+Status: draft, 2026-11-04. Describes the tables in `supabase/migrations/` (core schema, and source files and records), plus the tables planned in `docs/architecture/plan.md` (tier 3). Planned tables are marked **Planned** and are not in a migration yet.
 
 Diagram: `docs/database-diagram.md`.
 
@@ -110,33 +110,45 @@ Diagram: `docs/database-diagram.md`.
 
 **Who can add, change, or delete it?** Any signed-in person can add an entry, but only as themselves. Nobody can change or delete an entry: the database refuses it.
 
-### Table name: source_snapshots (Planned)
+### Table name: source_snapshots
 
-**What it stores:** the PubMed export file exactly as uploaded, with its checksum. Kept in the database so backups cover it (decided 2026-10-28).
+**What it stores:** the PubMed export file exactly as uploaded to a batch, with its checksum. Kept in the database so backups cover it (decided 2026-10-28). Migration: `20261104010000_records.sql`.
 
 | Column name | Type of data | Required? | What it means |
 | --- | --- | --- | --- |
 | id | uuid | Yes | A unique code for each upload. |
 | batch_id | uuid | Yes | The batch the file was loaded into. |
+| file_name | text | Yes | The file's name as uploaded. |
 | file_text | text | Yes | The file's contents as uploaded. |
-| checksum | text | Yes | A fingerprint of the file, to show it has not changed. |
-| uploaded_by, uploaded_at | uuid, date and time | Yes | Who uploaded it, and when. |
+| checksum | text | Yes | SHA-256 fingerprint of the file, as 64 lowercase hex characters. Set by the app at upload. |
+| uploaded_by | uuid | Yes | The person who uploaded it. Defaults to the signed-in person. |
+| uploaded_at | date and time | Yes | When it was uploaded. |
 
-Who can see it: members of the batch. Who can change it: nobody. Append-only.
+**Who can see it?** Members of the batch.
 
-### Table name: records (Planned)
+**Who can add, change, or delete it?** Reviewers and owners can upload, and only as themselves. Nobody can change or delete a file: the database refuses it.
 
-**What it stores:** each PubMed record as it was screened, with its bibliographic details.
+### Table name: records
+
+**What it stores:** each PubMed record as it was screened in one batch. One copy per PubMed ID per batch, so the same article can appear in several batches, each with its own row. Migration: `20261104010000_records.sql`.
 
 | Column name | Type of data | Required? | What it means |
 | --- | --- | --- | --- |
-| pmid | text | Yes | The PubMed ID. Unique within a batch. |
-| doi, title, abstract, journal | text | No for doi and abstract (missing abstracts are flagged, US-01) | Bibliographic details. |
-| authors | text | No | Author list. |
-| year | number | No | Publication year. |
-| source_snapshot_id | uuid | Yes | The upload this record came from. |
+| id | uuid | Yes | A unique code for each record row. |
+| batch_id | uuid | Yes | The batch the record was imported into. |
+| source_snapshot_id | uuid | Yes | The uploaded file the record came from. Must be in the same batch. |
+| pmid | text | Yes | The PubMed ID. Digits only. Unique within a batch. |
+| doi | text | No | The DOI, if PubMed has one. |
+| title | text | Yes | The article title. A record without one is refused. |
+| abstract | text | No | The abstract. Missing abstracts are accepted and flagged, so they are screened from the title (UC1). |
+| authors | text | No | The author list. |
+| journal | text | No | The journal name. |
+| year | number | No | Publication year, from 1800 to 2200. |
+| created_at | date and time | Yes | When the row was added. |
 
-Who can see it: members of the batch. Who can change it: nobody, once screening has started.
+**Who can see it?** Members of the batch.
+
+**Who can add, change, or delete it?** Reviewers and owners can add records. Nobody can change or delete a record: the database refuses it. A duplicate PubMed ID in one batch is refused, so the import must have the reviewer keep one copy first (UC1).
 
 ### Table name: criteria_versions (Planned)
 
@@ -230,8 +242,8 @@ Who can see it: owners. Who can change it: nobody.
 - One decision event can be corrected by many later events, but each correction points to exactly one earlier event in the same batch.
 - One dispute flag can be settled by one resolution, which points at that flag.
 - One audit entry records one action by one person, and that person may have many entries.
-- *(Planned)* One batch has one or more source uploads. Each upload holds many records.
-- *(Planned)* One record can be in many batches, and each batch-record row has one relevance score.
+- One batch can have many source uploads. Each upload holds many records, and each record belongs to one upload in the same batch.
+- One batch can have many records. Each PubMed ID appears once per batch, with a separate row in each batch that contains it.
 - *(Planned)* One criteria version has many reasons. Each decision uses one criteria version and one reason from it.
 - *(Planned)* One record in one batch can have many AI proposals, but each proposal belongs to one record in one batch.
 
@@ -239,9 +251,9 @@ Who can see it: owners. Who can change it: nobody.
 
 Supabase calls these Row Level Security, or RLS. Supabase says to turn on RLS for every table in an exposed schema.
 
-- [x] RLS is turned on for every table in the migration (user_roles, batches, batch_members, decision_events, audit_events). Planned tables are not yet created.
-- [x] Each table has a rule that limits what each person can see. Batch data is limited to batch members. The user_roles, batch_members, and audit_events rows are limited to their own, with owners seeing all audit entries.
-- [ ] I tested this with two accounts. **Not yet.** The tests in `tests/db/` simulate two or more signed-in users on a local PostgreSQL. They have not run against a real Supabase project with two real accounts.
+- [x] RLS is turned on for every table in the migrations (user_roles, batches, batch_members, decision_events, audit_events, source_snapshots, records). Planned tables are not yet created.
+- [x] Each table has a rule that limits what each person can see. Batch data, files, and records are limited to batch members. The user_roles, batch_members, and audit_events rows are limited to their own, with owners seeing all audit entries.
+- [x] I tested this with two accounts. On the development Supabase project, 2026-11-04: two test accounts, one reviewer in a batch and one reviewer outside it. The second account could not see the first batch's batch row, files, records, or decisions, could not record a decision or add itself to the batch, and saw only its own role row. Even the creator could not change or delete a decision or a record. 15 of 15 checks passed. The tests in `tests/db/` also cover these rules on a local PostgreSQL.
 
 ## Database diagram
 
@@ -249,8 +261,8 @@ Way 2: Mermaid diagram in `docs/database-diagram.md`.
 
 ## Migration files
 
-- [x] Every change to the database is saved as a SQL migration file in the repository. Current file: `supabase/migrations/20261104000000_core_schema.sql`.
-- [x] I can tell what each migration file does from its name. The name is a date and "core_schema". Later migrations will name each change (for example, `add_criteria_versions`).
+- [x] Every change to the database is saved as a SQL migration file in the repository. Current files: `supabase/migrations/20261104000000_core_schema.sql` and `supabase/migrations/20261104010000_records.sql`. Migrations run in filename order.
+- [x] I can tell what each migration file does from its name. The names are a date and a short description ("core_schema", "records"). Later migrations will name each change (for example, `add_criteria_versions`).
 
 ## Resolved in the schema fixes (2026-11-04)
 
@@ -261,7 +273,6 @@ Way 2: Mermaid diagram in `docs/database-diagram.md`.
 ## Open items to decide before creating the tables
 
 1. **criteria_version is text, not a link.** It should point to `criteria_versions` once that table exists.
-2. **records are not linked yet.** decision_events holds record_pmid as text, which works until the records table exists.
 3. **A resolution links to one flag only.** US-19 says a resolution links to both decisions. The flag can carry that link, or a second pointer can be added. Decide when the disagreement feature is built.
 4. **Who manages batch members and roles?** The admin path is not designed yet (ADR-0008).
 5. **Supabase's own auth user table is the people table.** This is deliberate. No separate people table is needed. Confirm this is OK.
