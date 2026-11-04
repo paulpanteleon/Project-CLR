@@ -6,6 +6,59 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type CodeState = { error: string | null };
 
+export type EnrollState = {
+  error: string | null;
+  factorId?: string;
+  qrCode?: string;
+  secret?: string;
+};
+
+// Starts authenticator set-up when the user asks for it, not when the page loads.
+// Creating the factor during page render was unsafe: a later render removed the factor
+// the QR code belonged to, so the first code check failed.
+export async function startEnrollment(
+  _previous: EnrollState,
+  _formData: FormData,
+): Promise<EnrollState> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "Sign-in is not set up yet. The Supabase settings are missing." };
+  }
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    return { error: "Your session has ended. Sign in again." };
+  }
+
+  // Remove any unfinished set-up first, so only one QR code is ever waiting.
+  const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
+  if (listError) {
+    console.error("mfa listFactors failed:", listError.message);
+    return { error: "Could not load your sign-in settings. Try again." };
+  }
+  for (const factor of factors.all) {
+    if (factor.factor_type === "totp" && factor.status === "unverified") {
+      await supabase.auth.mfa.unenroll({ factorId: factor.id });
+    }
+  }
+
+  const { data, error } = await supabase.auth.mfa.enroll({
+    factorType: "totp",
+    friendlyName: "Authenticator app",
+  });
+  if (error || !data) {
+    console.error("mfa enroll failed:", error?.message);
+    return { error: "Could not start set-up. Try again." };
+  }
+
+  return {
+    error: null,
+    factorId: data.id,
+    qrCode: data.totp.qr_code,
+    secret: data.totp.secret,
+  };
+}
+
 // Checks a 6-digit code from the user's authenticator app against one factor.
 // Success upgrades the session to aal2. Every attempt is written to the audit log (T-2).
 async function checkCode(factorId: string, rawCode: string): Promise<CodeState> {
@@ -28,6 +81,7 @@ async function checkCode(factorId: string, rawCode: string): Promise<CodeState> 
     factorId,
   });
   if (challengeError || !challenge) {
+    console.error("mfa challenge failed:", challengeError?.message);
     return { error: "Could not start the check. Try again." };
   }
 
