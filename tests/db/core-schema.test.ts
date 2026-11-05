@@ -428,3 +428,89 @@ describe("source files and records (one copy per batch, append-only)", () => {
     ).rejects.toThrow(/checksum/);
   });
 });
+
+describe("PubMed import in one step (US-01, ADR-0010)", () => {
+  const sampleRecords = (pmids: string[]) =>
+    JSON.stringify(
+      pmids.map((pmid) => ({
+        pmid,
+        doi: null,
+        title: `Title ${pmid}`,
+        abstract: pmid === pmids[0] ? null : `Abstract ${pmid}`,
+        authors: "Writer A",
+        journal: "Test Journal",
+        year: 2025,
+      })),
+    );
+
+  async function importBatch(userId: string, name: string, records: string, label = "public") {
+    return asUser(userId, () =>
+      db.query<{ id: string }>(
+        `select public.import_pubmed_batch($1, $2, 'export.txt', 'PMID- 1', $3, $4::jsonb, 1, 0) as id`,
+        [name, label, "b".repeat(64), records],
+      ),
+    );
+  }
+
+  async function batchCount(name: string) {
+    const r = await db.query<{ n: number }>(
+      "select count(*)::int as n from public.batches where name = $1",
+      [name],
+    );
+    return r.rows[0].n;
+  }
+
+  it("a reviewer imports a file and gets a batch with its records and file", async () => {
+    const result = await importBatch(WRITER, "Import ok", sampleRecords(["70000001", "70000002"]));
+    const batchId = result.rows[0].id;
+
+    const records = await db.query<{ n: number }>(
+      "select count(*)::int as n from public.records where batch_id = $1",
+      [batchId],
+    );
+    expect(records.rows[0].n).toBe(2);
+
+    const file = await db.query<{ rejected_count: number; duplicate_count: number }>(
+      "select rejected_count, duplicate_count from public.source_snapshots where batch_id = $1",
+      [batchId],
+    );
+    expect(file.rows[0]).toEqual({ rejected_count: 1, duplicate_count: 0 });
+  });
+
+  it("the creator can read the new batch back", async () => {
+    const result = await importBatch(WRITER, "Import readable", sampleRecords(["70000003"]));
+    const readBack = await asUser(WRITER, () =>
+      db.query("select id from public.batches where id = $1", [result.rows[0].id]),
+    );
+    expect(readBack.rows).toHaveLength(1);
+  });
+
+  it("a read-only member cannot import, and no batch is left behind", async () => {
+    await expect(importBatch(READER, "Import refused", sampleRecords(["70000004"]))).rejects.toThrow(
+      RLS_OR_PRIVILEGE,
+    );
+    expect(await batchCount("Import refused")).toBe(0);
+  });
+
+  it("refuses more than 500 records, and leaves no batch behind", async () => {
+    const pmids = Array.from({ length: 501 }, (_, i) => String(71000000 + i));
+    await expect(importBatch(WRITER, "Import too big", sampleRecords(pmids))).rejects.toThrow(
+      /up to 500/,
+    );
+    expect(await batchCount("Import too big")).toBe(0);
+  });
+
+  it("refuses a file with the same PubMed ID twice, and leaves no batch behind", async () => {
+    await expect(
+      importBatch(WRITER, "Import duplicate", sampleRecords(["72000001", "72000001"])),
+    ).rejects.toThrow(/records_one_per_batch/);
+    expect(await batchCount("Import duplicate")).toBe(0);
+  });
+
+  it("refuses an unknown source label, and leaves no batch behind", async () => {
+    await expect(
+      importBatch(WRITER, "Import bad label", sampleRecords(["73000001"]), "private"),
+    ).rejects.toThrow(/source_label/);
+    expect(await batchCount("Import bad label")).toBe(0);
+  });
+});
