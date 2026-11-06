@@ -274,5 +274,5 @@ Way 2: Mermaid diagram in `docs/database-diagram.md`.
 
 1. **criteria_version is text, not a link.** It should point to `criteria_versions` once that table exists.
 3. **A resolution links to one flag only.** US-19 says a resolution links to both decisions. The flag can carry that link, or a second pointer can be added. Decide when the disagreement feature is built.
-4. **Who manages batch members and roles?** The admin path is not designed yet (ADR-0008).
+4. **Who manages batch members and roles?** Roles are assigned by an admin, who is an owner (ADR-0011). The admin path that writes `user_roles` and the authenticator reset mark is not built yet.
 5. **Supabase's own auth user table is the people table.** This is deliberate. No separate people table is needed. Confirm this is OK.
