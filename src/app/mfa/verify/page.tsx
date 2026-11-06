@@ -5,6 +5,7 @@ import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { ENROLL } from "@/lib/auth/mfa-routing";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { verifyCode } from "../actions";
 import { CodeForm } from "../code-form";
@@ -28,6 +29,33 @@ async function Check() {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return <Alert severity="warning">Sign-in is not set up. Check .env.local.</Alert>;
+  }
+
+  // An admin asked for a new authenticator (US-21). This runs after the password check.
+  // Remove the old authenticator, then send the user to set up a new one (ADR-0011, ADR-0012).
+  const { data: role } = await supabase.from("user_roles").select("reset_requested_at").maybeSingle();
+  if (role?.reset_requested_at) {
+    const { data: userData } = await supabase.auth.getUser();
+    const admin = createSupabaseAdminClient();
+    if (!userData.user || !admin) {
+      return <Alert severity="error">Could not reset your sign-in. Try again.</Alert>;
+    }
+    const userId = userData.user.id;
+    const { data: listed, error: listError } = await admin.auth.admin.mfa.listFactors({ userId });
+    if (listError) {
+      console.error("admin listFactors failed:", listError.message);
+      return <Alert severity="error">Could not reset your sign-in. Try again.</Alert>;
+    }
+    for (const factor of listed.factors) {
+      if (factor.factor_type === "totp") {
+        const { error: deleteError } = await admin.auth.admin.mfa.deleteFactor({ id: factor.id, userId });
+        if (deleteError) {
+          console.error("admin deleteFactor failed:", deleteError.message);
+          return <Alert severity="error">Could not reset your sign-in. Try again.</Alert>;
+        }
+      }
+    }
+    redirect(ENROLL);
   }
 
   const { data: factors, error } = await supabase.auth.mfa.listFactors();
