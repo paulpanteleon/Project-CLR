@@ -26,11 +26,11 @@ Rules applied before saving, in the app:
 - More than 500 records: refused, and the user is told to split the file (US-01).
 - A record with no PubMed ID or no title: rejected. It is left out and counted.
 - A record with no abstract: flagged. It is kept and screened from its title (UC1).
-- A PubMed ID that appears twice in the same file: the first copy is kept and later copies are counted as duplicates and left out. This is a default. UC1 says the reviewer should choose which copy to keep. That choice needs a screen, so it is deferred.
+- A PubMed ID that appears twice in the same file: the first copy is kept, and later copies are counted as duplicates and left out (decided 2026-11-05, replacing the earlier plan for a reviewer to choose). No screen is needed for this.
 
-A PubMed ID may appear in more than one batch. Each batch keeps its own copy (decided 2026-11-04). The Figma import summary shows duplicates resolved by choosing a copy in an earlier batch. That does not match the one-copy-per-batch decision, so the Figma screen needs updating before it is built.
+A PubMed ID may appear in more than one batch. Each batch keeps its own copy (decided 2026-11-04). The import summary shows the count of duplicates, with a note that the earlier batch keeps its own copy. No choice is offered. The Figma import summary (S03) was updated to match on 2026-11-05.
 
 ## Consequences
 - The database enforces the 500-record limit and the one-copy-per-batch rule, so they hold even if the app is bypassed.
 - The import summary counts (rejected and duplicates) are stored on the source file row, because the file is append-only and the counts must match what was imported.
-- Next steps: update the Figma import summary to match the decision above. Decide whether a reviewer should choose which duplicate to keep, and if so, add that screen.
+- Next steps: none for duplicates. The reviewer does not choose which copy to keep.
