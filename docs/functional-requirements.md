@@ -52,6 +52,7 @@ The review topic is "AI used to support clinical literature review." A record is
 | US-18 | Medical writer screens with keyboard shortcuts, so that high-volume screening is fast | Each outcome has a shortcut. No shortcut saves a decision without a logged reason. A help list shows every shortcut. |
 | US-19 | Reviewer flags a record where two reviewers disagree, so that conflicts are resolved on the record | Two-reviewer screening is a batch setting. Reviewers can see each other's decisions. Both decisions are kept. An owner resolves the flag with a new event that links to both decisions. |
 | US-20 | Clinical affairs lead checks the ranking against a labelled reference set, so that the relevance score can be calibrated | Agreement with the labels is reported. Score changes are stored as versions. Decisions keep the version they were made under. |
+| US-21 | Admin resets a user's authenticator, so that a user who loses their phone can sign in again | The reset is audited. The user still needs their password. The old authenticator stops working. The user must set up a new one before reaching any page (ADR-0011). |
 
 ## Scenarios for US-15 to US-20 (added 2026-11-03)
 
@@ -81,6 +82,11 @@ These are summaries of the Gherkin scenarios. Turn them into automated tests whe
 **Calibrate the ranking (US-20)**
 - The clinical affairs lead runs calibration on a labelled set (proposed: at least 50 records). The system reports the share of labels the ranking agrees with.
 - Saving a calibrated score creates a new version. Decisions made under the earlier version still reference it.
+
+**Reset a lost authenticator (US-21)**
+- An admin marks a user for an authenticator reset. The mark and the admin's name are stored in the audit history.
+- The user signs in with their password, then is sent to set up a new authenticator. The old one no longer works.
+- The user reaches no other page until the new authenticator is verified. The mark is then cleared.
 
 ## Use cases
 

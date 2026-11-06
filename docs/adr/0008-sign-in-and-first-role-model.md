@@ -26,6 +26,6 @@ For the admin role, treat the "owner" permission level as the admin for now. Onl
 
 ## Consequences
 - Done in ADR-0009: multi-factor sign-in with an authenticator app.
-- Must do before the admin screen: confirm with the owner that "owner" is the right admin role. If not, add a new user type and update US-15.
+- Confirmed in ADR-0011: "owner" is the admin role. A separate admin type can still be added later (US-15).
 - Sign-out is on the MFA screens only. The batches page has none yet.
 - Sessions are refreshed in `src/proxy.ts`. The proxy calls the Supabase auth server on each page request, which adds a small delay. Measure it against P-2 (pages load within 2 seconds).

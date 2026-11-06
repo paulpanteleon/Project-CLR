@@ -26,9 +26,9 @@ Use Option 1. Every user must set up an authenticator app before they reach any 
 Routing rules are in `src/lib/auth/mfa-routing.ts` and tested in `tests/auth/mfa-routing.test.ts`. Signed-out users go to sign-in. Signed-in users without a checked code go to set-up (no authenticator yet) or code entry (authenticator already set up). Checked users are kept off sign-in and the MFA pages.
 
 ## Consequences
-- No recovery codes are issued. A user who loses their phone cannot sign in. Someone with owner access must remove the factor in the Supabase dashboard before the user can enrol again. Write this into the operations plan before the first real review.
-- An admin screen to remove a factor is not built. It belongs with the admin screen for US-15.
+- No recovery codes are issued. A user who loses their phone cannot sign in until an admin resets their authenticator (ADR-0011, US-21). Until the admin screen exists, an owner removes the factor in the Supabase dashboard. Write this into the operations plan before the first real review.
+- The admin reset screen is not built. It belongs with the admin screen for US-15.
 - The Supabase project must have TOTP multi-factor turned on. Confirm this in the dashboard when the project is set up (see the open questions doc).
 - The factor checks rely on Supabase's session assurance levels. A live test with a real authenticator app is still needed. The routing rules are tested, but the Supabase calls are not.
 - Every page request now makes two calls to Supabase (user check and assurance level). Measure against P-2.
-- Next steps: add sign-out to the batches page (currently only on the MFA pages), and add the admin factor-removal path (ADR-0008).
+- Next steps: add sign-out to the batches page (currently only on the MFA pages), and add the admin reset path (ADR-0011).

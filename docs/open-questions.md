@@ -2,6 +2,11 @@
 
 Check this file before building anything that touches these items. Resolve each entry, update the relevant doc, then delete the entry here.
 
+## Resolved (2026-11-05)
+
+- **Who assigns roles:** an admin, who is a user with the owner permission level. Only an admin assigns user types and permission levels (US-15, ADR-0011).
+- **Lost authenticator:** an admin marks the user for reset. At their next sign-in, the user enters their password, then sets up a new authenticator (US-21, ADR-0011). Recovery codes are not issued.
+
 ## Resolved (2026-11-03)
 
 - **Relevance score:** shown on each queued record for ranking. It is not a confidence in the AI's decision (FR-DR-10, CLAUDE.md).
