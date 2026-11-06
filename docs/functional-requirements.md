@@ -96,7 +96,7 @@ Main flow:
 7. Records sent to clinician review move to the clinician queue.
 8. MW closes the batch once every record has a human decision.
 
-Alternate flows: no abstract (flag, screen from title); AI failures (retry, then list separately); US route unavailable (pause, no records lost); duplicate PubMed IDs (flag, ask MW to keep one); more than 500 records (refuse, split the export); off-topic records (AI proposes exclude with a criteria reason, which is the core of the use case); AI cannot place a record (proposes unsure); hosting usage limit reached (pause with cause and reset time, no records lost).
+Alternate flows: no abstract (flag, screen from title); AI failures (retry, then list separately); US route unavailable (pause, no records lost); duplicate PubMed IDs in one file (flag, keep the first copy, count the rest as duplicates); more than 500 records (refuse, split the export); off-topic records (AI proposes exclude with a criteria reason, which is the core of the use case); AI cannot place a record (proposes unsure); hosting usage limit reached (pause with cause and reset time, no records lost).
 
 **UC2: Answer a reviewer's question about a decision.** Goal: answer any question about an include or exclude decision within minutes.
 

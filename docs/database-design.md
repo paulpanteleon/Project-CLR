@@ -148,7 +148,7 @@ Diagram: `docs/database-diagram.md`.
 
 **Who can see it?** Members of the batch.
 
-**Who can add, change, or delete it?** Reviewers and owners can add records. Nobody can change or delete a record: the database refuses it. A duplicate PubMed ID in one batch is refused, so the import must have the reviewer keep one copy first (UC1).
+**Who can add, change, or delete it?** Reviewers and owners can add records. Nobody can change or delete a record: the database refuses it. A duplicate PubMed ID in one batch is refused. The import keeps the first copy in the file and leaves out later copies (UC1, decided 2026-11-05).
 
 ### Table name: criteria_versions (Planned)
 
