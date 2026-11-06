@@ -109,6 +109,16 @@ export async function confirmEnrollment(
 ): Promise<CodeState> {
   const result = await checkCode(String(formData.get("factorId") ?? ""), String(formData.get("code") ?? ""));
   if (result.error) return result;
+  // A new authenticator that works ends any admin-requested reset (US-21, ADR-0012).
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "Sign-in is not set up yet. The Supabase settings are missing." };
+  }
+  const { error: resetError } = await supabase.rpc("complete_authenticator_reset");
+  if (resetError) {
+    console.error("complete_authenticator_reset failed:", resetError.message);
+    return { error: "Could not finish set-up. Try again." };
+  }
   // redirect() ends the request, so it must stay outside any try block.
   redirect(HOME);
 }
