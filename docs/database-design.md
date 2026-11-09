@@ -150,7 +150,7 @@ Diagram: `docs/database-diagram.md`.
 
 **Who can add, change, or delete it?** Reviewers and owners can add records. Nobody can change or delete a record: the database refuses it. A duplicate PubMed ID in one batch is refused. The import keeps the first copy in the file and leaves out later copies (UC1, decided 2026-11-05).
 
-### Table name: criteria_versions (Planned)
+### Table name: criteria_versions
 
 **What it stores:** each version of the screening criteria for a review, with its approval status.
 
@@ -163,9 +163,9 @@ Diagram: `docs/database-diagram.md`.
 | status | text | Yes | draft, approved, or locked. Locked once any decision uses it (FR-DR-06). |
 | drafted_by, approved_by | uuid | Drafted by: Yes. Approved by: once approved | Who wrote it and who approved it. The drafter cannot approve (US-12). |
 
-Who can see it: all signed-in members of a batch that uses it. Who can change it: the medical writer drafts; the clinical affairs lead approves. Approval is logged in the audit table.
+Who can see it: signed-in users with a role see approved and locked versions. A draft is seen only by its drafter and by clinical affairs leads. Who can change it: the medical writer drafts; the clinical affairs lead approves and locks. Nobody changes the text once a version is approved. Every draft, approval and lock is logged in the audit table. Built in migration `20261109000000_criteria_versions.sql` (ADR-0013).
 
-### Table name: criteria_reasons (Planned)
+### Table name: criteria_reasons
 
 **What it stores:** the fixed list of reasons a record can be included or excluded, for each criteria version.
 
@@ -244,7 +244,7 @@ Who can see it: owners. Who can change it: nobody.
 - One audit entry records one action by one person, and that person may have many entries.
 - One batch can have many source uploads. Each upload holds many records, and each record belongs to one upload in the same batch.
 - One batch can have many records. Each PubMed ID appears once per batch, with a separate row in each batch that contains it.
-- *(Planned)* One criteria version has many reasons. Each decision uses one criteria version and one reason from it.
+- One criteria version has many reasons. Each decision will use one criteria version and one reason from it. The decision link is not built yet.
 - *(Planned)* One record in one batch can have many AI proposals, but each proposal belongs to one record in one batch.
 
 ## Access rules
