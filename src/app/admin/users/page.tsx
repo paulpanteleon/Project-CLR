@@ -64,34 +64,45 @@ async function UserList({ searchParams }: { searchParams: Promise<{ error?: stri
     return <Alert severity="error">Could not load users. Try again.</Alert>;
   }
 
-  const emails = new Map(listed.users.map((user) => [user.id, user.email ?? "No email"]));
-  const rows = (roles ?? []) as RoleRow[];
+  // Every account is listed, including accounts with no role yet. Those are assigned a role here.
+  const rolesByUser = new Map((roles ?? []).map((row) => [row.user_id, row as RoleRow]));
+  const users = listed.users
+    .map((user) => ({ userId: user.id, email: user.email ?? "No email", role: rolesByUser.get(user.id) ?? null }))
+    .sort((a, b) => a.email.localeCompare(b.email));
 
   return (
     <Stack spacing={2}>
       {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-      {rows.length === 0 && <Alert severity="info">No users have a role yet.</Alert>}
-      {rows.map((row) => (
-        <Paper key={row.user_id} elevation={1} sx={{ p: 3 }}>
+      {users.length === 0 && <Alert severity="info">No users have signed up yet.</Alert>}
+      {users.map(({ userId, email, role }) => (
+        <Paper key={userId} elevation={1} sx={{ p: 3 }}>
           <Stack direction="row" spacing={2} sx={{ alignItems: "center", justifyContent: "space-between" }}>
-            <Typography variant="subtitle1">{emails.get(row.user_id) ?? row.user_id}</Typography>
-            {row.reset_requested_at && <Chip size="small" color="warning" label="Reset pending" />}
+            <Typography variant="subtitle1">{email}</Typography>
+            {role ? (
+              role.reset_requested_at && <Chip size="small" color="warning" label="Reset pending" />
+            ) : (
+              <Chip size="small" label="No role yet" />
+            )}
           </Stack>
           <Typography variant="body2" color="text.secondary">
-            {USER_TYPE_LABELS[row.user_type] ?? row.user_type} · {PERMISSION_LABELS[row.permission_level] ?? row.permission_level}
+            {role
+              ? `${USER_TYPE_LABELS[role.user_type] ?? role.user_type} · ${PERMISSION_LABELS[role.permission_level] ?? role.permission_level}`
+              : "Not assigned. Choose a user type and permission, then save."}
           </Typography>
           <RoleForm
-            userId={row.user_id}
-            userType={row.user_type}
-            permissionLevel={row.permission_level}
+            userId={userId}
+            userType={role?.user_type ?? "medical_writer"}
+            permissionLevel={role?.permission_level ?? "read_only"}
             action={setRole}
           />
-          <form action={requestReset} style={{ marginTop: 16 }}>
-            <input type="hidden" name="userId" value={row.user_id} />
-            <Button type="submit" variant="outlined" color="warning" disabled={row.reset_requested_at !== null}>
-              {row.reset_requested_at ? "Waiting for next sign-in" : "Require a new authenticator at next sign-in"}
-            </Button>
-          </form>
+          {role && (
+            <form action={requestReset} style={{ marginTop: 16 }}>
+              <input type="hidden" name="userId" value={userId} />
+              <Button type="submit" variant="outlined" color="warning" disabled={role.reset_requested_at !== null}>
+                {role.reset_requested_at ? "Waiting for next sign-in" : "Require a new authenticator at next sign-in"}
+              </Button>
+            </form>
+          )}
         </Paper>
       ))}
     </Stack>
