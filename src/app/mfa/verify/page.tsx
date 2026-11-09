@@ -33,11 +33,24 @@ async function Check() {
 
   // An admin asked for a new authenticator (US-21). This runs after the password check.
   // Remove the old authenticator, then send the user to set up a new one (ADR-0011, ADR-0012).
-  const { data: role } = await supabase.from("user_roles").select("reset_requested_at").maybeSingle();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    return <Alert severity="error">Could not load your sign-in settings. Try again.</Alert>;
+  }
+  // Owners can read every role row (user_roles_read_owners), so filter to the signed-in user.
+  // Without the filter, maybeSingle() fails for an owner and the reset was skipped.
+  const { data: role, error: roleError } = await supabase
+    .from("user_roles")
+    .select("reset_requested_at")
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+  if (roleError) {
+    console.error("user_roles lookup failed:", roleError.message);
+    return <Alert severity="error">Could not load your sign-in settings. Try again.</Alert>;
+  }
   if (role?.reset_requested_at) {
-    const { data: userData } = await supabase.auth.getUser();
     const admin = createSupabaseAdminClient();
-    if (!userData.user || !admin) {
+    if (!admin) {
       return <Alert severity="error">Could not reset your sign-in. Try again.</Alert>;
     }
     const userId = userData.user.id;
