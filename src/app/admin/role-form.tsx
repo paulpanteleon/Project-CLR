@@ -33,14 +33,15 @@ export function RoleForm({
     <form action={action}>
       <input type="hidden" name="userId" value={userId} />
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { sm: "center" }, mt: 2 }}>
-        <TextField select name="userType" label="User type" defaultValue={userType} size="small" fullWidth>
+        {/* The key remounts the select when the saved value changes, so defaultValue is not changed on a mounted select. */}
+        <TextField key={userType} select name="userType" label="User type" defaultValue={userType} size="small" fullWidth>
           {Object.entries(USER_TYPE_LABELS).map(([value, label]) => (
             <MenuItem key={value} value={value}>
               {label}
             </MenuItem>
           ))}
         </TextField>
-        <TextField select name="permissionLevel" label="Permission" defaultValue={permissionLevel} size="small" fullWidth>
+        <TextField key={permissionLevel} select name="permissionLevel" label="Permission" defaultValue={permissionLevel} size="small" fullWidth>
           {Object.entries(PERMISSION_LABELS).map(([value, label]) => (
             <MenuItem key={value} value={value}>
               {label}
