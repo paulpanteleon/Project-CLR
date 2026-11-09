@@ -38,7 +38,7 @@ For separation of duties:
 
 ## Consequences
 - The rules are enforced in the database and tested in `tests/db/criteria-versions.test.ts`. A mutation check confirmed the tests fail when the reason guard is removed.
-- Drafts cannot be edited. A mistake in a draft is fixed by drafting a new version, which keeps the history simple.
+- The drafter can edit a draft until it is approved (added 2026-11-09, migration `20261110000000_criteria_draft_edits.sql`, `update_criteria_draft`). The review name, version number and drafter never change. After approval, a change needs a new version. Every edit is audited.
 - Only medical writers can draft and only clinical affairs leads can approve or lock. A person who is both needs two user types, which is not possible in one role row (ADR-0008, US-15). If that happens, a new decision is needed.
 - `decision_events.criteria_version` is still free text. Linking it to `criteria_versions` is the next step (open item 1 in `docs/database-design.md`).
 - Not covered yet: the screen for listing and approving versions is basic. It needs a live test on the dev project with two accounts (a medical writer and a clinical affairs lead) before real review use, as with the earlier migrations.

@@ -109,6 +109,7 @@ async function VersionList({ searchParams }: { searchParams: Promise<{ error?: s
       {versions.map((version) => {
         const canApprove = userType === "clinical_affairs_lead" && version.drafted_by !== userId;
         const canLock = userType === "clinical_affairs_lead";
+        const canEdit = version.status === "draft" && version.drafted_by === userId && userType === "medical_writer";
         return (
           <Paper key={version.id} elevation={1} sx={{ p: 3 }}>
             <Stack direction="row" spacing={2} sx={{ alignItems: "center", justifyContent: "space-between" }}>
@@ -141,8 +142,13 @@ async function VersionList({ searchParams }: { searchParams: Promise<{ error?: s
                 ))}
             </ul>
 
-            {(canApprove && version.status === "draft") || (canLock && version.status === "approved") ? (
+            {canEdit || (canApprove && version.status === "draft") || (canLock && version.status === "approved") ? (
               <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+                {canEdit && (
+                  <Button href={`/criteria/${version.id}/edit`} variant="outlined">
+                    Edit draft
+                  </Button>
+                )}
                 {canApprove && version.status === "draft" && (
                   <form action={approveCriteriaVersion}>
                     <input type="hidden" name="criteriaVersionId" value={version.id} />

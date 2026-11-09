@@ -22,6 +22,7 @@ const READER = "00000000-0000-0000-0000-00000000000c"; // clinician reviewer, re
 const VERSION_1 = "30000000-0000-0000-0000-000000000001";
 const VERSION_2 = "30000000-0000-0000-0000-000000000002";
 const VERSION_3 = "30000000-0000-0000-0000-000000000003";
+const VERSION_4 = "30000000-0000-0000-0000-000000000004";
 const REVIEW = "AI in clinical literature review";
 
 const REASONS = [
@@ -148,6 +149,71 @@ describe("create_criteria_version", () => {
   });
 });
 
+describe("update_criteria_draft", () => {
+  const EDITED_REASONS = [{ code: "R-TOPIC-OK", label: "Edited reason." }];
+
+  function update(id: string, reasons = EDITED_REASONS, population = "Edited population") {
+    return db.query<{ r: string }>(
+      "select public.update_criteria_draft($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb) as r",
+      [
+        id,
+        "Edited topic.",
+        population,
+        "Edited intervention",
+        "Edited comparator",
+        "Edited outcomes",
+        "Edited design",
+        "Edited dates",
+        JSON.stringify(reasons),
+      ],
+    );
+  }
+
+  it("lets the drafter change a draft's text and replace its reasons", async () => {
+    await asUser(WRITER, () => draft(VERSION_4));
+
+    const result = await asUser(WRITER, () => update(VERSION_4));
+    expect(result.rows[0].r).toBe("ok");
+
+    const { rows } = await db.query<{ population: string }>(
+      "select population from public.criteria_versions where id = $1",
+      [VERSION_4],
+    );
+    expect(rows[0].population).toBe("Edited population");
+
+    const reasons = await db.query<{ code: string; label: string }>(
+      "select code, label from public.criteria_reasons where criteria_version_id = $1",
+      [VERSION_4],
+    );
+    expect(reasons.rows).toEqual([{ code: "R-TOPIC-OK", label: "Edited reason." }]);
+  });
+
+  it("refuses an edit by someone other than the drafter, and audits it", async () => {
+    const result = await asUser(OWNER, () => update(VERSION_4));
+    expect(result.rows[0].r).toBe("denied");
+
+    const audit = await db.query<{ allowed: boolean }>(
+      "select allowed from public.audit_events where actor_id = $1 and action = 'criteria.edit_draft' and target = $2",
+      [OWNER, VERSION_4],
+    );
+    expect(audit.rows).toEqual([{ allowed: false }]);
+  });
+
+  it("refuses an edit with no reasons", async () => {
+    await expect(asUser(WRITER, () => update(VERSION_4, []))).rejects.toThrow(/at least one reason/);
+  });
+
+  it("refuses an edit once the draft is approved", async () => {
+    const approved = await asUser(OWNER, () =>
+      db.query<{ r: string }>("select public.approve_criteria_version($1) as r", [VERSION_4]),
+    );
+    expect(approved.rows[0].r).toBe("ok");
+
+    const result = await asUser(WRITER, () => update(VERSION_4));
+    expect(result.rows[0].r).toBe("not_draft");
+  });
+});
+
 describe("who can see a draft", () => {
   it("shows a draft only to its drafter and to clinical affairs leads", async () => {
     const reader = await asUser(READER, () =>
@@ -257,10 +323,10 @@ describe("an approved version is locked in its text", () => {
   it("refuses a change to or removal of a reason", async () => {
     await expect(
       db.query("update public.criteria_reasons set label = 'Changed.' where criteria_version_id = $1", [VERSION_1]),
-    ).rejects.toThrow(/cannot be changed or deleted/);
+    ).rejects.toThrow(/no longer a draft/);
     await expect(
       db.query("delete from public.criteria_reasons where criteria_version_id = $1", [VERSION_1]),
-    ).rejects.toThrow(/cannot be changed or deleted/);
+    ).rejects.toThrow(/no longer a draft/);
   });
 
   it("refuses deleting a version", async () => {
