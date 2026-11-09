@@ -9,7 +9,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 // input. The database makes the decisions: who may draft, approve, or lock, and what may
 // change. Each function returns a result word, which is turned into a message here.
 
-export type DraftState = { error: string | null };
+// field names the field that needs fixing, so the form can point at it. It is empty for
+// problems that are not about one field.
+export type DraftState = { error: string | null; field?: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REASON_CODE = /^[A-Z][A-Z0-9-]*$/;
@@ -59,13 +61,13 @@ export async function draftCriteriaVersion(_previous: DraftState, formData: Form
   for (const field of FIELDS) {
     values[field] = String(formData.get(field) ?? "").trim();
     if (values[field].length === 0) {
-      return { error: `Fill in ${field.replace("_", " ")}.` };
+      return { error: "Fill in this field.", field };
     }
   }
 
   const { reasons, error: reasonError } = parseReasons(String(formData.get("reasons") ?? ""));
   if (reasonError) {
-    return { error: reasonError };
+    return { error: reasonError, field: "reasons" };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -89,7 +91,9 @@ export async function draftCriteriaVersion(_previous: DraftState, formData: Form
 
   if (error) {
     console.error("create_criteria_version failed:", error.message);
-    return { error: error.message.includes("at least one reason") ? "Add at least one reason." : MESSAGES.error };
+    return error.message.includes("at least one reason")
+      ? { error: "Add at least one reason, one per line as CODE: label.", field: "reasons" }
+      : { error: MESSAGES.error };
   }
   if (data !== "ok") {
     return { error: MESSAGES[String(data)] ?? MESSAGES.error };
