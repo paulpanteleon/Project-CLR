@@ -7,16 +7,23 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { CriteriaSelect, type CriteriaOption } from "./criteria-select";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Import summary for one batch (S03, US-01). Counts come from the database, so they
-// match what was saved, even after a refresh.
-export default function ImportSummaryPage({ params }: { params: Promise<{ id: string }> }) {
+// Import summary for one batch (S03, US-01), with batch setup (S04, US-02). Counts come from the
+// database, so they match what was saved, even after a refresh.
+export default function ImportSummaryPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Suspense fallback={null}>
-        <Summary params={params} />
+        <Summary params={params} searchParams={searchParams} />
       </Suspense>
     </Container>
   );
@@ -35,8 +42,15 @@ function Count({ label, value }: { label: string; value: number }) {
   );
 }
 
-async function Summary({ params }: { params: Promise<{ id: string }> }) {
+async function Summary({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
   const { id } = await params;
+  const { error: errorMessage } = await searchParams;
   if (!UUID.test(id)) notFound();
 
   const supabase = await createSupabaseServerClient();
@@ -45,8 +59,27 @@ async function Summary({ params }: { params: Promise<{ id: string }> }) {
   }
 
   // Row-level security limits these to the batch's members. Anyone else gets nothing.
-  const { data: batch } = await supabase.from("batches").select("id, name").eq("id", id).maybeSingle();
+  const { data: batch } = await supabase
+    .from("batches")
+    .select("id, name, criteria_version_id")
+    .eq("id", id)
+    .maybeSingle();
   if (!batch) notFound();
+
+  // Approved and locked versions are visible to everyone with a role (RLS on criteria_versions).
+  const [{ data: versions }, { count: decisionCount }] = await Promise.all([
+    supabase
+      .from("criteria_versions")
+      .select("id, review_name, version_number, status")
+      .neq("status", "draft")
+      .order("review_name")
+      .order("version_number", { ascending: false }),
+    supabase.from("decision_events").select("id", { count: "exact", head: true }).eq("batch_id", id),
+  ]);
+  const options: CriteriaOption[] = (versions ?? []).map((version) => ({
+    id: version.id,
+    label: `${version.review_name}, version ${version.version_number}`,
+  }));
 
   const { data: file } = await supabase
     .from("source_snapshots")
@@ -92,17 +125,33 @@ async function Summary({ params }: { params: Promise<{ id: string }> }) {
         </Alert>
       )}
 
+      {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
+
+      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" component="h2" gutterBottom>
+          Criteria
+        </Typography>
+        <CriteriaSelect
+          batchId={id}
+          options={options}
+          currentId={batch.criteria_version_id}
+          locked={(decisionCount ?? 0) > 0}
+        />
+      </Paper>
+
       <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between" }}>
         <Button href="/" color="inherit">
           Back to batches
         </Button>
-        <Button variant="contained" disabled>
-          Continue to batch setup
+        <Button variant="contained" href={`/batches/${id}/screen`} disabled={!batch.criteria_version_id}>
+          Screen records
         </Button>
       </Stack>
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-        Batch setup is not built yet.
-      </Typography>
+      {!batch.criteria_version_id && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          Choose a criteria version before screening.
+        </Typography>
+      )}
     </>
   );
 }

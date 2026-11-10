@@ -24,6 +24,8 @@ const OUTSIDER = "00000000-0000-0000-0000-00000000000d";
 const BATCH = "10000000-0000-0000-0000-000000000001";
 const OTHER_BATCH = "10000000-0000-0000-0000-000000000002";
 const OTHER_EVENT = "20000000-0000-0000-0000-000000000002";
+// Decisions must name a criteria version and a reason from it (ADR-0014).
+const CRITERIA = "50000000-0000-0000-0000-000000000001";
 
 const RLS_OR_PRIVILEGE = /row-level security|permission denied/;
 const APPEND_ONLY = /append-only/;
@@ -61,9 +63,9 @@ async function insertDecision(
   return asUser(userId, () =>
     db.query<{ id: string }>(
       `insert into public.decision_events
-         (batch_id, record_pmid, kind, outcome, reason_code, criteria_version,
+         (batch_id, record_pmid, kind, outcome, reason_code, criteria_version_id,
           corrects_event_id, actor_id)
-       values ($1, '41435444', $2, $3, $4, 'v1', $5, coalesce($6, auth.uid()))
+       values ($1, '41435444', $2, $3, $4, '${CRITERIA}', $5, coalesce($6, auth.uid()))
        returning id`,
       [BATCH, row.kind, row.outcome, row.reason_code, row.corrects_event_id, row.actor_id ?? null],
     ),
@@ -96,11 +98,22 @@ beforeAll(async () => {
     insert into public.batch_members (batch_id, user_id) values
       ('${BATCH}', '${WRITER}'), ('${BATCH}', '${READER}');
 
+    insert into public.criteria_versions
+      (id, review_name, version_number, review_topic, population, intervention,
+       comparator, outcomes, design, dates, drafted_by)
+    values
+      ('${CRITERIA}', 'Core test review', 1, 'Topic', 'Population', 'Intervention',
+       'Comparator', 'Outcomes', 'Design', 'Dates', '${OWNER}');
+
+    insert into public.criteria_reasons (criteria_version_id, code, label) values
+      ('${CRITERIA}', 'R-TOPIC-OK', 'Describes the topic.'),
+      ('${CRITERIA}', 'R-TOPIC-OUT', 'Does not describe the topic.');
+
     insert into public.decision_events
-      (id, batch_id, record_pmid, kind, outcome, reason_code, criteria_version, actor_id)
+      (id, batch_id, record_pmid, kind, outcome, reason_code, criteria_version_id, actor_id)
     values
       ('${OTHER_EVENT}', '${OTHER_BATCH}', '41435444', 'human_decision', 'include',
-       'R-TOPIC-OK', 'v1', '${OWNER}');
+       'R-TOPIC-OK', '${CRITERIA}', '${OWNER}');
   `);
 });
 
