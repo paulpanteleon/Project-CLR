@@ -43,7 +43,14 @@ async function asUser<T>(userId: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
-function decide(userId: string, batchId: string, pmid: string, outcome: string, reason: string | null, text = "") {
+function decide(
+  userId: string,
+  batchId: string,
+  pmid: string,
+  outcome: string,
+  reason: string | null,
+  text = "Supporting text from the abstract.",
+) {
   return asUser(userId, () =>
     db.query<{ r: string }>("select public.record_screening_decision($1, $2, $3, $4, $5) as r", [
       batchId,
@@ -211,6 +218,26 @@ describe("record_screening_decision", () => {
     await expect(decide(WRITER, BATCH, PMID_2, "include", null)).rejects.toThrow(/Choose a reason/);
   });
 
+  it("refuses a decision without supporting text, even when only spaces are given", async () => {
+    await expect(decide(WRITER, BATCH, PMID_2, "include", "R-TOPIC-OK", "   ")).rejects.toThrow(
+      /supporting text/,
+    );
+  });
+
+  it("stores the supporting text trimmed, and links the decision to its record", async () => {
+    const result = await decide(WRITER, BATCH, PMID_2, "include", "R-TOPIC-OK", "  Second record matches.  ");
+    expect(result.rows[0].r).toBe("ok");
+
+    const { rows } = await db.query<{ free_text: string; title: string; abstract: string }>(
+      `select e.free_text, r.title, r.abstract
+       from public.decision_events e
+       join public.records r on r.batch_id = e.batch_id and r.pmid = e.record_pmid
+       where e.batch_id = $1 and e.record_pmid = $2`,
+      [BATCH, PMID_2],
+    );
+    expect(rows).toEqual([{ free_text: "Second record matches.", title: "Second record", abstract: "Another abstract." }]);
+  });
+
   it("refuses an outcome that is not one of the four", async () => {
     await expect(decide(WRITER, BATCH, PMID_2, "maybe-ish", "R-TOPIC-OK")).rejects.toThrow(/Choose include/);
   });
@@ -219,12 +246,38 @@ describe("record_screening_decision", () => {
     await expect(
       asUser(WRITER, () =>
         db.query(
-          `insert into public.decision_events (batch_id, record_pmid, kind, outcome, reason_code, actor_id)
-           values ($1, $2, 'human_decision', 'include', 'R-TOPIC-OK', $3)`,
+          `insert into public.decision_events (batch_id, record_pmid, kind, outcome, reason_code, free_text, actor_id)
+           values ($1, $2, 'human_decision', 'include', 'R-TOPIC-OK', 'Supporting text.', $3)`,
           [BATCH, PMID_2, WRITER],
         ),
       ),
     ).rejects.toThrow(/decision_version_required/);
+  });
+
+  it("refuses a direct insert with no supporting text", async () => {
+    await expect(
+      asUser(WRITER, () =>
+        db.query(
+          `insert into public.decision_events
+             (batch_id, record_pmid, kind, outcome, reason_code, criteria_version_id, actor_id)
+           values ($1, $2, 'human_decision', 'include', 'R-TOPIC-OK', $3, $4)`,
+          [BATCH, PMID_2, VERSION_APPROVED, WRITER],
+        ),
+      ),
+    ).rejects.toThrow(/decision_supporting_text_required/);
+  });
+
+  it("refuses a direct insert for a record that is not in the decision's batch", async () => {
+    await expect(
+      asUser(WRITER, () =>
+        db.query(
+          `insert into public.decision_events
+             (batch_id, record_pmid, kind, outcome, reason_code, free_text, criteria_version_id, actor_id)
+           values ($1, $2, 'human_decision', 'include', 'R-TOPIC-OK', 'Supporting text.', $3, $4)`,
+          [BATCH, PMID_UNKNOWN, VERSION_APPROVED, WRITER],
+        ),
+      ),
+    ).rejects.toThrow(/decision_record_in_batch/);
   });
 });
 
@@ -280,8 +333,8 @@ describe("correct_screening_decision", () => {
     await expect(
       db.query(
         `insert into public.decision_events
-           (batch_id, record_pmid, kind, outcome, reason_code, criteria_version_id, corrects_event_id, actor_id)
-         values ($1, $2, 'correction', 'include', 'R-TOPIC-OK', $3, $4, $5)`,
+           (batch_id, record_pmid, kind, outcome, reason_code, free_text, criteria_version_id, corrects_event_id, actor_id)
+         values ($1, $2, 'correction', 'include', 'R-TOPIC-OK', 'Trying again.', $3, $4, $5)`,
         [BATCH, PMID_1, VERSION_APPROVED, original.rows[0].id, WRITER],
       ),
     ).rejects.toThrow(/decision_events_one_correction/);

@@ -79,11 +79,11 @@ Diagram: `docs/database-diagram.md`.
 | --- | --- | --- | --- |
 | id | uuid | Yes | A unique code for each event. |
 | batch_id | uuid | Yes | The batch the record belongs to. |
-| record_pmid | text | Yes | The PubMed ID of the record decided. |
+| record_pmid | text | Yes | The PubMed ID of the record decided. Must be a record in the same batch, so the decision links to that record's study details (title, DOI, journal, year, abstract). |
 | kind | text | Yes | human_decision, override, correction, query, query_response, dispute_flag (two reviewers disagree), or resolution (an owner settles a flag). |
 | outcome | text | Required for decisions and resolutions | include, exclude, unsure, or send_to_clinician. Not needed for queries, replies, or flags. |
 | reason_code | text | Required for decisions and resolutions | The reason, taken from the criteria reasons list. Not needed for queries, replies, or flags. |
-| free_text | text | No | Extra detail the reviewer adds. |
+| free_text | text | Required for decisions and corrections | The supporting text from the record that backs the reason (a quote or summary). For a correction, the reason for the change. Must not be blank. |
 | criteria_version | text | Yes | The criteria version in use when the decision was made. Planned to become a link to the criteria versions table. |
 | corrects_event_id | uuid | Required for corrections and resolutions | The earlier event this one replaces (a correction) or settles (a resolution, which points at its dispute flag). Must be in the same batch. |
 | actor_id | uuid | Yes | The person who recorded the event. Must be the signed-in person. |

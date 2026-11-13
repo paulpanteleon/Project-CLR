@@ -26,6 +26,8 @@ const OTHER_BATCH = "10000000-0000-0000-0000-000000000002";
 const OTHER_EVENT = "20000000-0000-0000-0000-000000000002";
 // Decisions must name a criteria version and a reason from it (ADR-0014).
 const CRITERIA = "50000000-0000-0000-0000-000000000001";
+const RECORD_SNAPSHOT = "40000000-0000-0000-0000-0000000000f1";
+const OTHER_RECORD_SNAPSHOT = "40000000-0000-0000-0000-0000000000f2";
 
 const RLS_OR_PRIVILEGE = /row-level security|permission denied/;
 const APPEND_ONLY = /append-only/;
@@ -63,9 +65,9 @@ async function insertDecision(
   return asUser(userId, () =>
     db.query<{ id: string }>(
       `insert into public.decision_events
-         (batch_id, record_pmid, kind, outcome, reason_code, criteria_version_id,
+         (batch_id, record_pmid, kind, outcome, reason_code, free_text, criteria_version_id,
           corrects_event_id, actor_id)
-       values ($1, '41435444', $2, $3, $4, '${CRITERIA}', $5, coalesce($6, auth.uid()))
+       values ($1, '41435444', $2, $3, $4, 'Supporting text.', '${CRITERIA}', $5, coalesce($6, auth.uid()))
        returning id`,
       [BATCH, row.kind, row.outcome, row.reason_code, row.corrects_event_id, row.actor_id ?? null],
     ),
@@ -109,11 +111,19 @@ beforeAll(async () => {
       ('${CRITERIA}', 'R-TOPIC-OK', 'Describes the topic.'),
       ('${CRITERIA}', 'R-TOPIC-OUT', 'Does not describe the topic.');
 
+    insert into public.source_snapshots (id, batch_id, file_name, file_text, checksum, uploaded_by) values
+      ('${RECORD_SNAPSHOT}', '${BATCH}', 'export.txt', 'PMID- 41435444', '${CHECKSUM}', '${OWNER}'),
+      ('${OTHER_RECORD_SNAPSHOT}', '${OTHER_BATCH}', 'export.txt', 'PMID- 41435444', '${CHECKSUM}', '${OWNER}');
+
+    insert into public.records (batch_id, source_snapshot_id, pmid, title, abstract) values
+      ('${BATCH}', '${RECORD_SNAPSHOT}', '41435444', 'Test record', 'An abstract.'),
+      ('${OTHER_BATCH}', '${OTHER_RECORD_SNAPSHOT}', '41435444', 'Test record', 'An abstract.');
+
     insert into public.decision_events
-      (id, batch_id, record_pmid, kind, outcome, reason_code, criteria_version_id, actor_id)
+      (id, batch_id, record_pmid, kind, outcome, reason_code, free_text, criteria_version_id, actor_id)
     values
       ('${OTHER_EVENT}', '${OTHER_BATCH}', '41435444', 'human_decision', 'include',
-       'R-TOPIC-OK', '${CRITERIA}', '${OWNER}');
+       'R-TOPIC-OK', 'Supporting text.', '${CRITERIA}', '${OWNER}');
   `);
 });
 

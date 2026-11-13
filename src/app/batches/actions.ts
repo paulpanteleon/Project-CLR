@@ -34,7 +34,7 @@ function messageForError(message: string): string {
   if (message.includes("decision_reason_from_version")) {
     return "That reason is not in this batch's criteria version.";
   }
-  if (message.includes("Choose") || message.includes("needs a reason")) {
+  if (message.includes("Choose") || message.includes("needs a reason") || message.includes("supporting text")) {
     return message;
   }
   return MESSAGES.error;
