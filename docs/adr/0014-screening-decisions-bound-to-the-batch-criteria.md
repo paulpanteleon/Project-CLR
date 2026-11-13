@@ -45,3 +45,9 @@ For locking:
 - The batch's version cannot change after the first decision. Changing it needs a new batch.
 - Decisions show the reviewer's identity only as "you" or "another reviewer" in the app. Showing names would need the secret key in another place, which ADR-0012 limits to two uses.
 - Not yet built: the two-reviewer setting, closing a batch (S09), and keyboard shortcuts and sprint progress (step 4).
+
+## Amendment (2026-11-13): supporting text and the record link
+- **Supporting text.** Each decision needs supporting text from the record, a quote or summary that backs the reason (US-04, FR-DR-02). The database refuses a blank one, and the form marks the field as required. A correction already needed a reason in free text, so it is covered by the same check. The check is `decision_supporting_text_required`, added as NOT VALID so the one earlier test row is not checked.
+- **Record link.** A composite foreign key ties each decision to its record in the same batch (`decision_record_in_batch`). The record's title, DOI, journal, year and abstract are then the study details for the decision. A record cannot be deleted while a decision points at it. Also added as NOT VALID for the earlier test row.
+- **Why not copy the record into the decision.** Records are written once on import and never change, so a link keeps one copy of the study details. Copying them would mean two copies to keep in step.
+- **Migration.** `20261112000000_decision_supporting_text_and_record_link.sql` redefines `record_screening_decision` to check the supporting text. The correction function already checked its free text and is unchanged.

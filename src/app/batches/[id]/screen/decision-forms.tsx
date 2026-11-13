@@ -32,7 +32,14 @@ export function DecisionForm({
       <input type="hidden" name="pmid" value={pmid} />
       <Stack spacing={2}>
         <ReasonField reasons={reasons} />
-        <TextField name="freeText" label="Note (optional)" size="small" fullWidth />
+        <TextField
+          name="freeText"
+          label="Supporting text from the record"
+          helperText="Quote or summarise the part of the title or abstract that supports the reason."
+          size="small"
+          fullWidth
+          required
+        />
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
           {OUTCOME_BUTTONS.map((button) => (
             <Button key={button.value} type="submit" name="outcome" value={button.value} variant="contained" color={button.color}>
