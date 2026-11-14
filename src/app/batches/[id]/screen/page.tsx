@@ -8,10 +8,21 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { MODELS } from "@/lib/ai/openrouter";
 import { CorrectionForm, DecisionForm, type ReasonOption } from "./decision-forms";
+import { FirstPassForm } from "./first-pass-form";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SHOWN_UNDECIDED = 50;
+
+type ProposalRow = {
+  record_pmid: string;
+  model_id: string;
+  status: string;
+  outcome: string | null;
+  reason_code: string | null;
+  rationale: string | null;
+};
 
 // Screening queue for one batch (S06, S07, S11, US-04, US-05, US-11). Undecided records come
 // first. Each decided record shows its current outcome, reason, and full history.
@@ -20,7 +31,7 @@ export default function ScreenPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; notice?: string }>;
 }) {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -59,10 +70,10 @@ async function Queue({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; notice?: string }>;
 }) {
   const { id } = await params;
-  const { error: errorMessage } = await searchParams;
+  const { error: errorMessage, notice } = await searchParams;
   if (!UUID.test(id)) notFound();
 
   const supabase = await createSupabaseServerClient();
@@ -119,6 +130,18 @@ async function Queue({
         .order("recorded_at"),
     ]);
 
+  const { data: proposalRows } = await supabase
+    .from("ai_proposals")
+    .select("record_pmid, model_id, status, outcome, reason_code, rationale")
+    .eq("batch_id", id)
+    .order("created_at");
+  const proposalsByPmid = new Map<string, ProposalRow[]>();
+  for (const row of (proposalRows ?? []) as ProposalRow[]) {
+    const list = proposalsByPmid.get(row.record_pmid) ?? [];
+    list.push(row);
+    proposalsByPmid.set(row.record_pmid, list);
+  }
+
   const reasons: ReasonOption[] = (reasonRows ?? []).map((row) => ({ code: row.code, label: row.label }));
   const reasonLabel = new Map(reasons.map((reason) => [reason.code, reason.label]));
   const currentByPmid = new Map((outcomes ?? []).map((row) => [row.record_pmid, row]));
@@ -144,6 +167,17 @@ async function Queue({
       </Typography>
 
       {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
+      {notice && <Alert severity="info" sx={{ mb: 2 }}>{notice}</Alert>}
+
+      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" component="h2" gutterBottom>
+          AI first pass
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Public records only, sent through the pinned route (ADR-0015). The first pass skips records that already have a proposal for the chosen model.
+        </Typography>
+        <FirstPassForm batchId={id} />
+      </Paper>
 
       {undecided.length === 0 && all.length > 0 && (
         <Alert severity="success" sx={{ mb: 2 }}>
@@ -158,6 +192,7 @@ async function Queue({
             <Typography variant="body2" sx={{ mt: 2, mb: 2 }} color="text.secondary">
               {record.abstract ? "Screen from the title and abstract." : "No abstract: screen from the title."}
             </Typography>
+            <ProposalList rows={proposalsByPmid.get(record.pmid) ?? []} reasonLabel={reasonLabel} />
             <DecisionForm batchId={id} pmid={record.pmid} reasons={reasons} />
           </Paper>
         ))}
@@ -209,6 +244,26 @@ async function Queue({
         })}
       </Stack>
     </>
+  );
+}
+
+// The AI proposals for one record, one line per model. They are shown for comparison, with no
+// confidence score (FR-DR-10). A reply that could not be read is not shown as a proposal.
+function ProposalList({ rows, reasonLabel }: { rows: ProposalRow[]; reasonLabel: Map<string, string> }) {
+  if (rows.length === 0) return null;
+  const modelLabel = new Map(MODELS.map((model) => [model.id, model.label]));
+  return (
+    <Stack spacing={0.5} sx={{ mb: 2 }}>
+      <Typography variant="subtitle2">AI proposals (not decisions)</Typography>
+      {rows.map((row) => (
+        <Typography key={`${row.model_id}`} variant="body2">
+          <strong>{modelLabel.get(row.model_id as (typeof MODELS)[number]["id"]) ?? row.model_id}:</strong>{" "}
+          {row.status === "proposed"
+            ? `${OUTCOME_LABELS[row.outcome ?? ""] ?? row.outcome}, ${row.reason_code} ${reasonLabel.get(row.reason_code ?? "") ?? ""}. ${row.rationale}`
+            : "The reply could not be read, so no proposal is shown."}
+        </Typography>
+      ))}
+    </Stack>
   );
 }
 
