@@ -6,7 +6,8 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PERMISSION_LABELS, USER_TYPE_LABELS } from "@/lib/roles";
-import { addBatchMember, removeBatchMember } from "../../actions";
+import { addBatchMember } from "../../actions";
+import { RemoveMemberButton } from "./remove-member-button";
 
 type Member = {
   user_id: string;
@@ -17,7 +18,7 @@ type Member = {
 };
 
 // The people on a batch (US-14, ADR-0016). Every member sees the list. The batch's creator, and an
-// owner on the batch, can add people by email and remove anyone but the creator.
+// owner on the batch, can add people by email and remove anyone but the creator, after confirming.
 export async function MembersSection({ batchId }: { batchId: string }) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return null;
@@ -62,13 +63,7 @@ export async function MembersSection({ batchId }: { batchId: string }) {
               {member.is_creator && <Chip size="small" color="primary" label="Created the batch" />}
             </Stack>
             {canManage && !member.is_creator && (
-              <form action={removeBatchMember}>
-                <input type="hidden" name="batchId" value={batchId} />
-                <input type="hidden" name="userId" value={member.user_id} />
-                <Button type="submit" size="small" color="error">
-                  Remove
-                </Button>
-              </form>
+              <RemoveMemberButton batchId={batchId} userId={member.user_id} email={member.email} />
             )}
           </Stack>
         ))}
