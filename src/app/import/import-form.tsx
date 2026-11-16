@@ -59,7 +59,7 @@ export function ImportForm() {
         </FormControl>
 
         <Stack direction="row" spacing={2} sx={{ justifyContent: "flex-end" }}>
-          <Button component={Link} href="/" color="inherit">
+          <Button component={Link} href="/batches" color="inherit">
             Cancel
           </Button>
           <Button type="submit" variant="contained" disabled={label === "" || pending}>
