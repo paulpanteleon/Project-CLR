@@ -32,4 +32,4 @@ For the Excel file:
 
 ## Consequences
 - The export shows the current outcome only. The full history of each record, and the AI proposals, are not in it yet. They belong with the review log export (PDF and Word), which is still to be built.
-- Tests check the package structure, and check each part's checksum against Node's own CRC-32. A sample file also passed Python's zip and XML checks. It has not yet been opened in Excel.
+- Tests check the package structure, and check each part's checksum against Node's own CRC-32. A sample file also passed Python's zip and XML checks. A real export from the dev batch opened cleanly in Excel (checked by the owner, 2026-11-16).
