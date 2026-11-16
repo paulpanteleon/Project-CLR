@@ -44,7 +44,7 @@ For what passes between steps:
 
 ## Consequences
 - The in-request loop is gone. Each click starts a background run, and the person can leave the page.
-- Ten records at a time should finish a 500-record batch well within 60 minutes, at about 9 seconds per record. This is not yet measured on a real 500-record batch.
+- First run, 2026-11-16, on dev with the SDK's local runner: 20 public records with Claude Haiku 5.5 finished in under a minute, with 20 proposed, none unreadable and none failed. Each step took about 9 seconds, ten at a time. At that pace a 500-record batch would take roughly 8 to 10 minutes, well inside P-1. This is not yet measured on Vercel or on a real 500-record batch.
 - One model on 500 records uses about 1,500 workflow events, so the Hobby allowance covers about 30 such runs a month.
 - `store_ai_proposal` (ADR-0015) is no longer called by the app. It is kept, because it still enforces the same rules if anyone calls it.
 - Confidential batches are still refused (ADR-0015).
