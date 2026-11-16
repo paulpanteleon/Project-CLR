@@ -140,7 +140,7 @@ async function Summary({
       </Paper>
 
       <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between" }}>
-        <Button href="/" color="inherit">
+        <Button href="/batches" color="inherit">
           Back to batches
         </Button>
         <Button variant="contained" href={`/batches/${id}/screen`} disabled={!batch.criteria_version_id}>

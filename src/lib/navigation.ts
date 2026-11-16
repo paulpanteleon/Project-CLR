@@ -9,10 +9,9 @@ export const MENUS: NavMenu[] = [
     id: "batches",
     label: "Batches",
     items: [
-      { label: "All batches", href: "/" },
+      { label: "All batches", href: "/batches" },
       { label: "Import PubMed batch", href: "/import" },
     ],
-    // The batch list is the home page, so "/" belongs here as an exact match (see activeMenuId).
     prefixes: ["/import", "/batches"],
   },
   {
@@ -39,9 +38,9 @@ export function showsHeader(pathname: string) {
   return !NO_HEADER_PREFIXES.some((prefix) => underPrefix(pathname, prefix));
 }
 
-// The menu for the section the user is in, so the header can mark it. Null when none applies.
+// The menu for the section the user is in, so the header can mark it. Null when none applies,
+// as on the home page.
 export function activeMenuId(pathname: string): string | null {
-  if (pathname === "/") return "batches";
   const menu = MENUS.find((candidate) => candidate.prefixes.some((prefix) => underPrefix(pathname, prefix)));
   return menu?.id ?? null;
 }

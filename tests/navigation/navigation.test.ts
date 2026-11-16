@@ -18,8 +18,12 @@ describe("showsHeader", () => {
 });
 
 describe("activeMenuId", () => {
-  it("marks Batches on the home page, the import page and every batch page", () => {
-    expect(activeMenuId("/")).toBe("batches");
+  it("marks no menu on the home page", () => {
+    expect(activeMenuId("/")).toBeNull();
+  });
+
+  it("marks Batches on the batch list, the import page and every batch page", () => {
+    expect(activeMenuId("/batches")).toBe("batches");
     expect(activeMenuId("/import")).toBe("batches");
     expect(activeMenuId("/batches/83e65416-8f94-4617-9847-0fd7d42e022e/screen")).toBe("batches");
   });
@@ -38,6 +42,6 @@ describe("activeMenuId", () => {
 describe("menu items", () => {
   it("links every item to a page that exists", () => {
     const hrefs = [...MENUS.flatMap((menu) => menu.items), ...ADMIN_ITEMS].map((item) => item.href);
-    expect(hrefs).toEqual(["/", "/import", "/criteria", "/criteria/new", "/admin/users"]);
+    expect(hrefs).toEqual(["/batches", "/import", "/criteria", "/criteria/new", "/admin/users"]);
   });
 });
