@@ -31,9 +31,7 @@ export function RemoveMemberButton({ batchId, userId, email }: { batchId: string
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpen(false)} autoFocus>
-              Cancel
-            </Button>
+            <Button onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="submit" color="error" variant="contained">
               Remove
             </Button>
