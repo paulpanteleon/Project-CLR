@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/.swc
+
+# Workflow SDK build output (ADR-0018)
+/src/app/.well-known/workflow/

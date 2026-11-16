@@ -51,6 +51,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Skip static files and image optimisation, which need no session check.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Skip static files and image optimisation, which need no session check, and the Workflow
+  // SDK's own routes, which Vercel calls to run workflow steps (ADR-0018).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.well-known/workflow/).*)"],
 };

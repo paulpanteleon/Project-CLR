@@ -11,6 +11,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { MODELS } from "@/lib/ai/openrouter";
 import { CorrectionForm, DecisionForm, type ReasonOption } from "./decision-forms";
 import { FirstPassForm } from "./first-pass-form";
+import { RunProgress, type RunRow } from "./run-progress";
+
+const SHOWN_RUNS = 4;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SHOWN_UNDECIDED = 50;
@@ -130,6 +133,25 @@ async function Queue({
         .order("recorded_at"),
     ]);
 
+  const { data: runRows } = await supabase
+    .from("ai_runs")
+    .select("id, model_id, status, total, proposed, unreadable, failed, last_error, started_at")
+    .eq("batch_id", id)
+    .order("started_at", { ascending: false })
+    .limit(SHOWN_RUNS);
+  const modelLabels = new Map<string, string>(MODELS.map((model) => [model.id, model.label]));
+  const runs: RunRow[] = (runRows ?? []).map((run) => ({
+    id: run.id,
+    model_label: modelLabels.get(run.model_id) ?? run.model_id,
+    status: run.status,
+    total: run.total,
+    proposed: run.proposed,
+    unreadable: run.unreadable,
+    failed: run.failed,
+    last_error: run.last_error,
+    started_at: run.started_at,
+  }));
+
   const { data: proposalRows } = await supabase
     .from("ai_proposals")
     .select("record_pmid, model_id, status, outcome, reason_code, rationale")
@@ -174,9 +196,11 @@ async function Queue({
           AI first pass
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Public records only, sent through the pinned route (ADR-0015). The first pass skips records that already have a proposal for the chosen model.
+          Public records only, sent through the pinned route (ADR-0015). The first pass runs in the background, so you
+          can leave this page. It skips records that already have a proposal for the chosen model.
         </Typography>
         <FirstPassForm batchId={id} />
+        <RunProgress runs={runs} />
       </Paper>
 
       {undecided.length === 0 && all.length > 0 && (
