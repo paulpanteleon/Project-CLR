@@ -10,7 +10,8 @@ import Typography from "@mui/material/Typography";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requestReset, setRole } from "../actions";
-import { PERMISSION_LABELS, RoleForm, USER_TYPE_LABELS } from "../role-form";
+import { PERMISSION_LABELS, USER_TYPE_LABELS } from "@/lib/roles";
+import { RoleForm } from "../role-form";
 
 // Users and roles (US-15, US-21). Owners only. The page checks the caller is an owner
 // before it reads the user list (ADR-0012).
