@@ -57,7 +57,7 @@ type EventRow = {
 const OUTCOME_LABELS: Record<string, string> = {
   include: "Include",
   exclude: "Exclude",
-  unsure: "Maybe",
+  unsure: "Unsure",
   send_to_clinician: "Send to clinician",
 };
 
