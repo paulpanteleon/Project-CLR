@@ -8,11 +8,11 @@ import { correctDecision, recordDecision } from "../../actions";
 
 export type ReasonOption = { code: string; label: string };
 
-// The four outcomes a reviewer can record. "Maybe" is stored as "unsure".
+// The four outcomes a reviewer can record. "Unsure" is the agreed word (open questions, 2026-11-03).
 const OUTCOME_BUTTONS: { value: string; label: string; color: "success" | "error" | "warning" | "info" }[] = [
   { value: "include", label: "Include", color: "success" },
   { value: "exclude", label: "Exclude", color: "error" },
-  { value: "unsure", label: "Maybe", color: "warning" },
+  { value: "unsure", label: "Unsure", color: "warning" },
   { value: "send_to_clinician", label: "Send to clinician", color: "info" },
 ];
 

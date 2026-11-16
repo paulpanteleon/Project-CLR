@@ -142,6 +142,24 @@ async function Summary({
 
       <MembersSection batchId={id} />
 
+      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" component="h2" gutterBottom>
+          Export decisions
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          One row per record, with its current outcome, reason, supporting text, who decided it and when. Records
+          without a decision are listed as Undecided. Each download is recorded in the audit history.
+        </Typography>
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" href={`/batches/${id}/export?format=csv`}>
+            Download CSV
+          </Button>
+          <Button variant="outlined" href={`/batches/${id}/export?format=xlsx`}>
+            Download Excel
+          </Button>
+        </Stack>
+      </Paper>
+
       <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between" }}>
         <Button href="/batches" color="inherit">
           Back to batches
