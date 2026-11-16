@@ -19,7 +19,8 @@
     "next": "16.4.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "workflow": "^5.5.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.15",
