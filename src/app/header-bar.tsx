@@ -127,6 +127,7 @@ function AccountMenu({ email, isOwner, pathname }: { email: string; isOwner: boo
     <>
       <Button
         id="account-button"
+        aria-label={`Account menu for ${email}`}
         aria-controls={open ? "account-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
