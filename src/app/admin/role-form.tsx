@@ -4,18 +4,7 @@ import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-
-export const USER_TYPE_LABELS: Record<string, string> = {
-  medical_writer: "Medical writer",
-  clinician_reviewer: "Clinician reviewer",
-  clinical_affairs_lead: "Clinical affairs lead",
-};
-
-export const PERMISSION_LABELS: Record<string, string> = {
-  read_only: "Read-only",
-  reviewer: "Reviewer",
-  owner: "Owner",
-};
+import { PERMISSION_LABELS, USER_TYPE_LABELS } from "@/lib/roles";
 
 // Lets an admin pick a user type and permission level for one person (US-15).
 export function RoleForm({

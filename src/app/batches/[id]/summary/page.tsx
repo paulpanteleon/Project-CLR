@@ -8,6 +8,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CriteriaSelect, type CriteriaOption } from "./criteria-select";
+import { MembersSection } from "./members";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -138,6 +139,8 @@ async function Summary({
           locked={(decisionCount ?? 0) > 0}
         />
       </Paper>
+
+      <MembersSection batchId={id} />
 
       <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between" }}>
         <Button href="/batches" color="inherit">

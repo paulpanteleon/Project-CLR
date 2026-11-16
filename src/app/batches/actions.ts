@@ -24,6 +24,23 @@ const MESSAGES: Record<string, string> = {
   error: "The change could not be saved. Try again.",
 };
 
+// Replies from add_batch_member and remove_batch_member (ADR-0016).
+const MEMBER_MESSAGES: Record<string, string> = {
+  not_found: MESSAGES.not_found,
+  denied: "Only the person who created this batch, or an owner on it, can change who is on it.",
+  unknown_user: "No account with a role uses that email. An admin must give them a role first.",
+  already_member: "That person is already on this batch.",
+  not_member: "That person is no longer on this batch.",
+  creator: "The person who created the batch cannot be removed.",
+  error: MESSAGES.error,
+};
+
+// After a change succeeds, reloads the page at its plain address. This clears a message left in
+// the address by an earlier failed attempt. redirect() ends the request.
+function done(batchId: string, page: "summary" | "screen"): never {
+  redirect(`/batches/${batchId}/${page}`);
+}
+
 // Sends the user back to a page of the batch with a message. redirect() ends the request.
 function back(batchId: string, page: "summary" | "screen", message: string): never {
   redirect(`/batches/${batchId}/${page}?error=${encodeURIComponent(message)}`);
@@ -64,6 +81,7 @@ export async function setBatchCriteria(formData: FormData) {
 
   revalidatePath(`/batches/${batchId}/summary`);
   revalidatePath(`/batches/${batchId}/screen`);
+  done(batchId, "summary");
 }
 
 // Records a decision on one record (S07, US-04, US-05). The outcome is the button pressed.
@@ -95,6 +113,7 @@ export async function recordDecision(formData: FormData) {
   }
 
   revalidatePath(`/batches/${batchId}/screen`);
+  done(batchId, "screen");
 }
 
 // Corrects a decision by adding a new event (S11, US-11). A reason is required.
@@ -125,4 +144,47 @@ export async function correctDecision(formData: FormData) {
   }
 
   revalidatePath(`/batches/${batchId}/screen`);
+  done(batchId, "screen");
+}
+
+// Adds a person to the batch by email (US-14, ADR-0016). The database checks who may do it.
+export async function addBatchMember(formData: FormData) {
+  const batchId = String(formData.get("batchId") ?? "");
+  const email = String(formData.get("email") ?? "").trim();
+  if (!UUID.test(batchId)) back(batchId, "summary", MESSAGES.not_found);
+  if (!email.includes("@")) back(batchId, "summary", "Enter the person's email address.");
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) back(batchId, "summary", MESSAGES.error);
+
+  const { data, error } = await supabase.rpc("add_batch_member", { p_batch_id: batchId, p_email: email });
+  if (error) {
+    console.error("add_batch_member failed:", error.message);
+    back(batchId, "summary", MEMBER_MESSAGES.error);
+  }
+  if (data !== "ok") back(batchId, "summary", MEMBER_MESSAGES[String(data)] ?? MEMBER_MESSAGES.error);
+
+  revalidatePath(`/batches/${batchId}/summary`);
+  done(batchId, "summary");
+}
+
+// Removes a person from the batch (US-14, ADR-0016). Their decisions stay on the record.
+export async function removeBatchMember(formData: FormData) {
+  const batchId = String(formData.get("batchId") ?? "");
+  const userId = String(formData.get("userId") ?? "");
+  if (!UUID.test(batchId)) back(batchId, "summary", MESSAGES.not_found);
+  if (!UUID.test(userId)) back(batchId, "summary", MEMBER_MESSAGES.not_member);
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) back(batchId, "summary", MESSAGES.error);
+
+  const { data, error } = await supabase.rpc("remove_batch_member", { p_batch_id: batchId, p_user_id: userId });
+  if (error) {
+    console.error("remove_batch_member failed:", error.message);
+    back(batchId, "summary", MEMBER_MESSAGES.error);
+  }
+  if (data !== "ok") back(batchId, "summary", MEMBER_MESSAGES[String(data)] ?? MEMBER_MESSAGES.error);
+
+  revalidatePath(`/batches/${batchId}/summary`);
+  done(batchId, "summary");
 }

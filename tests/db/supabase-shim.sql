@@ -17,7 +17,8 @@ $$;
 create schema if not exists auth;
 
 create table auth.users (
-  id uuid primary key
+  id uuid primary key,
+  email text
 );
 
 create function auth.uid()
