@@ -19,7 +19,9 @@ const ROUTING = {
   require_parameters: true,
 };
 
-export const MODEL_SETTINGS = { temperature: 0, max_tokens: 400, routing: ROUTING };
+// The pinned route does not accept temperature, so it is not sent. require_parameters makes
+// OpenRouter refuse the request rather than drop a setting silently.
+export const MODEL_SETTINGS = { max_tokens: 400, routing: ROUTING };
 
 type Message = { role: "system" | "user"; content: string };
 
@@ -56,7 +58,7 @@ export async function askModel(model: string, messages: Message[]): Promise<Mode
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages, ...MODEL_SETTINGS, provider: ROUTING }),
+    body: JSON.stringify({ model, messages, max_tokens: MODEL_SETTINGS.max_tokens, provider: ROUTING }),
     signal: AbortSignal.timeout(90_000),
   });
   if (!response.ok) {

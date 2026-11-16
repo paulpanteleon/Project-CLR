@@ -259,7 +259,7 @@ function ProposalList({ rows, reasonLabel }: { rows: ProposalRow[]; reasonLabel:
         <Typography key={`${row.model_id}`} variant="body2">
           <strong>{modelLabel.get(row.model_id as (typeof MODELS)[number]["id"]) ?? row.model_id}:</strong>{" "}
           {row.status === "proposed"
-            ? `${OUTCOME_LABELS[row.outcome ?? ""] ?? row.outcome}, ${row.reason_code} ${reasonLabel.get(row.reason_code ?? "") ?? ""}. ${row.rationale}`
+            ? `${OUTCOME_LABELS[row.outcome ?? ""] ?? row.outcome}, ${row.reason_code}: ${(reasonLabel.get(row.reason_code ?? "") ?? "").replace(/\.$/, "")}. ${row.rationale}`
             : "The reply could not be read, so no proposal is shown."}
         </Typography>
       ))}
