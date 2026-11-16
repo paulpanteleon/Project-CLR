@@ -9,7 +9,6 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { SignOut } from "./mfa/sign-out";
 
 // Batches screen (S01). Lists the batches the user can see, and starts an import.
 export default function Home() {
@@ -23,26 +22,13 @@ export default function Home() {
           Import PubMed batch
         </Button>
       </Stack>
-      {/* The user and their batches are read from the request's cookies, so that part is
-          streamed inside Suspense and the rest of the page can be built ahead of time. */}
+      {/* The batches are read with the request's cookies, so that part is streamed inside
+          Suspense and the rest of the page can be built ahead of time. The signed-in user and
+          Sign out are in the header. */}
       <Suspense fallback={null}>
-        <SignedInAs />
         <BatchList />
       </Suspense>
-      <SignOut />
     </Container>
-  );
-}
-
-async function SignedInAs() {
-  const supabase = await createSupabaseServerClient();
-  const { data } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
-  if (!data.user?.email) return null;
-
-  return (
-    <Typography variant="body2" color="text.secondary" gutterBottom>
-      Signed in as {data.user.email}
-    </Typography>
   );
 }
 
