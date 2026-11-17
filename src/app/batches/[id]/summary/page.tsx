@@ -106,9 +106,14 @@ async function Summary({
         <Typography variant="h4" component="h1">
           {batch.name}
         </Typography>
-        <Button variant="contained" href={`/batches/${id}/screen`} disabled={!batch.criteria_version_id}>
-          Screen records
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" href={`/batches/${id}/log`}>
+            Review log
+          </Button>
+          <Button variant="contained" href={`/batches/${id}/screen`} disabled={!batch.criteria_version_id}>
+            Screen records
+          </Button>
+        </Stack>
       </Stack>
       {!batch.criteria_version_id && (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: "right" }}>

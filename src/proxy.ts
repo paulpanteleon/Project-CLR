@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseConfig } from "@/lib/supabase/config";
 import { routeFor, type AssuranceLevel, type SessionState } from "@/lib/auth/mfa-routing";
+import { RETURN_TO_COOKIE, RETURN_TO_MAX_AGE_SECONDS, returnPathFor } from "@/lib/auth/return-to";
 
 // Runs before each page request. It refreshes the session cookie, then sends the
 // visitor where they should be: sign-in, the authenticator enrolment or code entry
@@ -44,7 +45,19 @@ export async function proxy(request: NextRequest) {
   if (target) {
     const url = request.nextUrl.clone();
     url.pathname = target;
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    // Someone opening a shared review log before signing in comes back to it afterwards.
+    const returnPath = returnPathFor(request.nextUrl.pathname);
+    if (returnPath) {
+      redirect.cookies.set(RETURN_TO_COOKIE, returnPath, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: request.nextUrl.protocol === "https:",
+        path: "/",
+        maxAge: RETURN_TO_MAX_AGE_SECONDS,
+      });
+    }
+    return redirect;
   }
 
   return response;

@@ -1,7 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { HOME, SIGN_IN } from "@/lib/auth/mfa-routing";
+import { RETURN_TO_COOKIE, returnPathFor } from "@/lib/auth/return-to";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type CodeState = { error: string | null };
@@ -102,6 +104,15 @@ async function checkCode(factorId: string, rawCode: string): Promise<CodeState> 
   return { error: null };
 }
 
+// Where to go once sign-in is complete: back to a shared review log opened before signing in, or
+// home. The cookie is checked again and cleared, so it is used once (ADR-0020).
+async function pathAfterSignIn() {
+  const cookieStore = await cookies();
+  const saved = cookieStore.get(RETURN_TO_COOKIE)?.value;
+  cookieStore.delete(RETURN_TO_COOKIE);
+  return (saved && returnPathFor(saved)) || HOME;
+}
+
 // Used on the enrolment screen: the first code confirms the new authenticator.
 export async function confirmEnrollment(
   _previous: CodeState,
@@ -120,14 +131,14 @@ export async function confirmEnrollment(
     return { error: "Could not finish set-up. Try again." };
   }
   // redirect() ends the request, so it must stay outside any try block.
-  redirect(HOME);
+  redirect(await pathAfterSignIn());
 }
 
 // Used at each sign-in after the authenticator is set up.
 export async function verifyCode(_previous: CodeState, formData: FormData): Promise<CodeState> {
   const result = await checkCode(String(formData.get("factorId") ?? ""), String(formData.get("code") ?? ""));
   if (result.error) return result;
-  redirect(HOME);
+  redirect(await pathAfterSignIn());
 }
 
 export async function signOut() {
