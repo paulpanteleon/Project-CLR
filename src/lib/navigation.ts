@@ -11,8 +11,9 @@ export const MENUS: NavMenu[] = [
     items: [
       { label: "All batches", href: "/batches" },
       { label: "Import PubMed batch", href: "/import" },
+      { label: "Find decisions", href: "/decisions" },
     ],
-    prefixes: ["/import", "/batches"],
+    prefixes: ["/import", "/batches", "/decisions"],
   },
   {
     id: "criteria",

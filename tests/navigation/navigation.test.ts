@@ -22,10 +22,12 @@ describe("activeMenuId", () => {
     expect(activeMenuId("/")).toBeNull();
   });
 
-  it("marks Batches on the batch list, the import page and every batch page", () => {
+  it("marks Batches on the batch list, the import page, every batch page and the decision search", () => {
     expect(activeMenuId("/batches")).toBe("batches");
     expect(activeMenuId("/import")).toBe("batches");
     expect(activeMenuId("/batches/83e65416-8f94-4617-9847-0fd7d42e022e/screen")).toBe("batches");
+    expect(activeMenuId("/batches/83e65416-8f94-4617-9847-0fd7d42e022e/records/31492632")).toBe("batches");
+    expect(activeMenuId("/decisions")).toBe("batches");
   });
 
   it("marks Criteria on the criteria pages", () => {
@@ -42,6 +44,6 @@ describe("activeMenuId", () => {
 describe("menu items", () => {
   it("links every item to a page that exists", () => {
     const hrefs = [...MENUS.flatMap((menu) => menu.items), ...ADMIN_ITEMS].map((item) => item.href);
-    expect(hrefs).toEqual(["/batches", "/import", "/criteria", "/criteria/new", "/admin/users"]);
+    expect(hrefs).toEqual(["/batches", "/import", "/decisions", "/criteria", "/criteria/new", "/admin/users"]);
   });
 });

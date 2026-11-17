@@ -4,11 +4,13 @@ import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Container from "@mui/material/Container";
+import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { MODELS } from "@/lib/ai/openrouter";
+import { OUTCOME_LABELS } from "@/lib/decisions";
 import { CorrectionForm, DecisionForm, type ReasonOption } from "./decision-forms";
 import { FirstPassForm } from "./first-pass-form";
 import { RunProgress, type RunRow } from "./run-progress";
@@ -55,13 +57,6 @@ type EventRow = {
   actor_id: string;
   recorded_at: string;
   corrects_event_id: string | null;
-};
-
-const OUTCOME_LABELS: Record<string, string> = {
-  include: "Include",
-  exclude: "Exclude",
-  unsure: "Unsure",
-  send_to_clinician: "Send to clinician",
 };
 
 function when(iso: string) {
@@ -212,7 +207,7 @@ async function Queue({
       <Stack spacing={2}>
         {undecided.slice(0, SHOWN_UNDECIDED).map((record) => (
           <Paper key={record.pmid} elevation={1} sx={{ p: 3 }}>
-            <RecordDetails record={record} />
+            <RecordDetails record={record} batchId={id} />
             <Typography variant="body2" sx={{ mt: 2, mb: 2 }} color="text.secondary">
               {record.abstract ? "Screen from the title and abstract." : "No abstract: screen from the title."}
             </Typography>
@@ -233,7 +228,7 @@ async function Queue({
           return (
             <Paper key={record.pmid} elevation={1} sx={{ p: 3 }}>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center", justifyContent: "space-between" }}>
-                <RecordDetails record={record} />
+                <RecordDetails record={record} batchId={id} />
                 <Chip size="small" label={OUTCOME_LABELS[current.outcome ?? ""] ?? current.outcome} />
               </Stack>
               <Typography variant="body2" sx={{ mt: 2 }}>
@@ -293,8 +288,10 @@ function ProposalList({ rows, reasonLabel }: { rows: ProposalRow[]; reasonLabel:
 
 function RecordDetails({
   record,
+  batchId,
 }: {
   record: { pmid: string; title: string; abstract: string | null; year: number | null; journal: string | null };
+  batchId: string;
 }) {
   return (
     <Stack spacing={0.5}>
@@ -305,6 +302,10 @@ function RecordDetails({
         PMID {record.pmid}
         {record.journal ? ` · ${record.journal}` : ""}
         {record.year ? ` · ${record.year}` : ""}
+        {" · "}
+        <Link href={`/batches/${batchId}/records/${record.pmid}`} underline="hover">
+          View details
+        </Link>
       </Typography>
       {record.abstract && <Typography variant="body2">{record.abstract}</Typography>}
     </Stack>
