@@ -2,6 +2,8 @@
 // Nothing here reads the database or the network. The .xlsx writer covers only what a plain table
 // needs: one sheet, text and number cells, a bold header row that stays in view.
 
+import { outcomeLabel } from "@/lib/decisions";
+
 export type ExportRow = {
   pmid: string;
   title: string;
@@ -21,14 +23,6 @@ export type ExportRow = {
 };
 
 export type Cell = string | number | null;
-
-// "Unsure" is the agreed word for the third outcome (open questions, 2026-11-03).
-const OUTCOME_LABELS: Record<string, string> = {
-  include: "Include",
-  exclude: "Exclude",
-  unsure: "Unsure",
-  send_to_clinician: "Send to clinician",
-};
 
 export const HEADERS = [
   "PMID",
@@ -64,7 +58,7 @@ export function toTable(rows: ExportRow[]): Cell[][] {
       row.journal,
       row.year,
       row.doi,
-      row.outcome ? (OUTCOME_LABELS[row.outcome] ?? row.outcome) : "Undecided",
+      outcomeLabel(row.outcome),
       row.reason_code,
       row.reason_label,
       row.supporting_text,
