@@ -43,6 +43,6 @@ For showing who decided:
 
 ## Consequences
 - A reviewer's question can be answered from one search and one page, without knowing the batch.
-- Searching and viewing are not audited. US-13 asks for every view of a shared review log to be logged, which is a separate feature.
+- Searching and viewing were not audited. That missed the rule that every view of a decision is logged (functional requirements, 2026-10-23). ADR-0020 adds the audit to both.
 - The search scans the caller's records with `ilike`. That is fast enough for the prototype's batches. P-5 (100,000 records) may need a trigram index later. The 2-second target (US-09) is not yet measured on production.
 - Queries, query responses and disagreement flags (US-16, US-19) already appear in the history when they exist, with a generic label. Their own screens come later.
