@@ -19,7 +19,7 @@ For how steps reach the database:
   - Bad: full access, and a third use of the secret key, which ADR-0012 limits to two.
 - Option 2: A per-run key (chosen)
   - Good: the key works for one run only, only while it is running, and for at most 2 hours. It can only read that batch's criteria and records, and store proposals for it. The database keeps only its SHA-256 hash and clears the hash when the run ends.
-  - Bad: the key is a step input, so Vercel stores it with the run for 1 day. It stops working when the run ends, so a stored copy is of no use after that.
+  - Bad: the key is a step input, so Vercel stores it with the run for 1 day. It stops working when the run ends, so a stored copy is of no use after that. The first production run showed Vercel stores step data encrypted (see Consequences).
 
 For what passes between steps:
 - Option 1: Send record text and model replies between steps
@@ -44,7 +44,9 @@ For what passes between steps:
 
 ## Consequences
 - The in-request loop is gone. Each click starts a background run, and the person can leave the page.
-- First run, 2026-11-16, on dev with the SDK's local runner: 20 public records with Claude Haiku 5.5 finished in under a minute, with 20 proposed, none unreadable and none failed. Each step took about 9 seconds, ten at a time. At that pace a 500-record batch would take roughly 8 to 10 minutes, well inside P-1. This is not yet measured on Vercel or on a real 500-record batch.
+- First run, 2026-11-16, on dev with the SDK's local runner: 20 public records with Claude Haiku 5.5 finished in under a minute, with 20 proposed, none unreadable and none failed. Each step took about 9 seconds, ten at a time. At that pace a 500-record batch would take roughly 8 to 10 minutes, well inside P-1.
+- First production run, 2026-11-17, on Vercel's Workflows service (run `wrun_41M7NKVTYQ0GRK7VBE1SNDB4X6`, checked with the Workflow CLI): 20 public records with Claude Haiku 5.5 finished in about 20 seconds, with 20 proposed, none unreadable and none failed. The run was in region `iad1` (US East). All 22 steps completed, with no errors. Each record step took 7.6 to 8.75 seconds, ten at a time. At that pace a 500-record batch would take about 8 minutes. This is still an estimate until a real 500-record batch is run.
+- Vercel marked every step of that run as stored with encryption on (`workflowEncryptionEnabled`), so the stored step inputs, including the run key, are encrypted. The key also stops working when the run ends.
 - One model on 500 records uses about 1,500 workflow events, so the Hobby allowance covers about 30 such runs a month.
 - `store_ai_proposal` (ADR-0015) is no longer called by the app. It is kept, because it still enforces the same rules if anyone calls it.
 - Confidential batches are still refused (ADR-0015).
