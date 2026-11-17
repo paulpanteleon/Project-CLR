@@ -12,9 +12,9 @@ import { MembersSection } from "./members";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Import summary for one batch (S03, US-01), with batch setup (S04, US-02). Counts come from the
-// database, so they match what was saved, even after a refresh.
-export default function ImportSummaryPage({
+// The batch's home page: a way into screening, the import summary (S03, US-01), and batch setup
+// (S04, US-02). Counts come from the database, so they match what was saved, even after a refresh.
+export default function BatchPage({
   params,
   searchParams,
 }: {
@@ -102,11 +102,24 @@ async function Summary({
 
   return (
     <>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Import summary: {batch.name}
-      </Typography>
+      <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "center" }}>
+        <Typography variant="h4" component="h1">
+          {batch.name}
+        </Typography>
+        <Button variant="contained" href={`/batches/${id}/screen`} disabled={!batch.criteria_version_id}>
+          Screen records
+        </Button>
+      </Stack>
+      {!batch.criteria_version_id && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: "right" }}>
+          Choose a criteria version below before screening.
+        </Typography>
+      )}
 
-      <Stack direction="row" spacing={2} sx={{ my: 3 }}>
+      <Typography variant="h6" component="h2" sx={{ mt: 3 }}>
+        Import summary
+      </Typography>
+      <Stack direction="row" spacing={2} sx={{ mt: 1, mb: 3 }}>
         <Count label="Accepted" value={records?.length ?? 0} />
         <Count label="Flagged" value={flagged.length} />
         <Count label="Duplicates" value={file?.duplicate_count ?? 0} />
@@ -160,19 +173,9 @@ async function Summary({
         </Stack>
       </Paper>
 
-      <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between" }}>
-        <Button href="/batches" color="inherit">
-          Back to batches
-        </Button>
-        <Button variant="contained" href={`/batches/${id}/screen`} disabled={!batch.criteria_version_id}>
-          Screen records
-        </Button>
-      </Stack>
-      {!batch.criteria_version_id && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Choose a criteria version before screening.
-        </Typography>
-      )}
+      <Button href="/batches" color="inherit">
+        Back to batches
+      </Button>
     </>
   );
 }

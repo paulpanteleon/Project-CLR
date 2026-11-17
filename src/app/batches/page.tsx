@@ -3,6 +3,7 @@ import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Paper from "@mui/material/Paper";
@@ -41,7 +42,7 @@ async function BatchList() {
   // Row-level security returns only the batches this user is a member of.
   const { data: batches, error } = await supabase
     .from("batches")
-    .select("id, name, source_label, status, created_at")
+    .select("id, name, source_label, status, criteria_version_id, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -60,12 +61,33 @@ async function BatchList() {
     <Paper elevation={1} sx={{ mt: 3 }}>
       <List>
         {batches.map((batch) => (
-          <ListItemButton key={batch.id} href={`/batches/${batch.id}/summary`}>
-            <ListItemText
-              primary={batch.name}
-              secondary={`${batch.source_label} · ${batch.status} · ${new Date(batch.created_at).toLocaleDateString("en-GB")}`}
-            />
-          </ListItemButton>
+          // Screen is a separate button beside the row's link, because a link can't hold another link.
+          <ListItem
+            key={batch.id}
+            disablePadding
+            secondaryAction={
+              <Button
+                variant="outlined"
+                size="small"
+                href={`/batches/${batch.id}/screen`}
+                disabled={!batch.criteria_version_id}
+              >
+                Screen
+              </Button>
+            }
+          >
+            <ListItemButton href={`/batches/${batch.id}/summary`}>
+              <ListItemText
+                primary={batch.name}
+                secondary={[
+                  batch.source_label,
+                  batch.status,
+                  new Date(batch.created_at).toLocaleDateString("en-GB"),
+                  ...(batch.criteria_version_id ? [] : ["choose criteria to start screening"]),
+                ].join(" · ")}
+              />
+            </ListItemButton>
+          </ListItem>
         ))}
       </List>
     </Paper>
